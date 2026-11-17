@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#cfe8f3">
+<meta name="description" content="A spelling game for two. Wormsworth says a word, one of you spells it out loud, the other types what they hear.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Core Vocabulary Spelling Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=DynaPuff:wght@400..700&family=Nunito:wght@400..800&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout idea: a picture-book sky. Left column is Wormsworth, his index-card
+     speech bubble and the typing strip; right column is the ledger of spellers. */
+  --field: #cfe8f3;
+  --field-deep: #b7d9e9;
+  --paper: #fffdf6;
+  --ink: #221d3a;
+  --muted: #5a5b80;
+  --outline: #2b2440;
+  --rule: #b9d5ea;
+  --apple: #dd3530;
+  --apple-ink: #fffaf2;
+  --leaf: #6db53a;
+  --worm: #bfe05a;
+  --worm-deep: #8fba36;
+  --good: #1f7a36;
+  --bad: #bf2626;
+  --good-fill: #1f7a36;
+  --bad-fill: #bf2626;
+  --focus: #2f6fe4;
+  --sketch: #2b2440;
+  --font-display: 'DynaPuff', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
+  --font-body: 'Nunito', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --font-type: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --field: #101a2e;
+    --field-deep: #18263f;
+    --paper: #1c2b47;
+    --ink: #eef3ff;
+    --muted: #a6b3d2;
+    --outline: #060a14;
+    --rule: #31466b;
+    --apple: #ff655c;
+    --apple-ink: #2b0705;
+    --leaf: #7cc447;
+    --good: #7bd88f;
+    --bad: #ff8d83;
+    --focus: #8fb6ff;
+    --sketch: #8493bb;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --field: #101a2e;
+  --field-deep: #18263f;
+  --paper: #1c2b47;
+  --ink: #eef3ff;
+  --muted: #a6b3d2;
+  --outline: #060a14;
+  --rule: #31466b;
+  --apple: #ff655c;
+  --apple-ink: #2b0705;
+  --leaf: #7cc447;
+  --good: #7bd88f;
+  --bad: #ff8d83;
+  --focus: #8fb6ff;
+  --sketch: #8493bb;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background-color: var(--field);
+  background-image: radial-gradient(var(--field-deep) 1.6px, transparent 1.8px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.app { max-width: 1080px; margin: 0 auto; padding: 24px 20px 56px; }
+h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- shared pieces ---------- */
+.panel {
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 20px;
+  box-shadow: 0 5px 0 var(--outline);
+  padding: 22px;
+}
+.btn {
+  font: 600 1rem/1.2 var(--font-display);
+  color: var(--ink);
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 14px;
+  padding: .6em 1em;
+  box-shadow: 0 4px 0 var(--outline);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: .5em;
+  transition: transform .08s ease, box-shadow .08s ease;
+  touch-action: manipulation;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 5px 0 var(--outline); }
+.btn:active, .btn.is-held { transform: translateY(4px); box-shadow: 0 0 0 var(--outline); }
+.btn-primary { background: var(--apple); color: var(--apple-ink); }
+.btn-big { font-size: 1.2rem; padding: .7em 1.3em; }
+.btn-sm { font-size: .88rem; padding: .45em .8em; border-radius: 12px; box-shadow: 0 3px 0 var(--outline); }
+kbd {
+  font: 700 .78em var(--font-type);
+  border: 1.5px solid currentColor;
+  border-radius: 5px;
+  padding: 0 .38em;
+  opacity: .75;
+}
+.fine { color: var(--muted); font-size: .95rem; }
+
+/* ---------- mascot ---------- */
+.mascot { display: block; width: 100%; height: auto; overflow: visible; }
+.mascot [data-m] { display: none; }
+.mascot[data-mood="idle"] [data-m~="idle"],
+.mascot[data-mood="happy"] [data-m~="happy"],
+.mascot[data-mood="sad"] [data-m~="sad"],
+.mascot[data-mood="nervous"] [data-m~="nervous"] { display: inline; }
+.mascot .talk-mouth { display: none; }
+.mascot.talking .talk-mouth { display: inline; transform-box: fill-box; transform-origin: center; animation: talk .2s ease-in-out infinite alternate; }
+.mascot.talking .mood-mouth { display: none !important; }
+.mascot .worm { transform-origin: 148px 156px; transition: transform .35s cubic-bezier(.3, 1.4, .5, 1); }
+.mascot[data-mood="sad"] .worm { transform: translateY(24px); }
+.mascot[data-mood="happy"] .worm { animation: wiggle .5s ease-in-out 3; }
+.mascot[data-mood="nervous"] .worm { animation: shiver .14s linear infinite; }
+.mascot.pop .worm { animation: pop .5s cubic-bezier(.3, 1.5, .5, 1); }
+.mascot .blink { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
+@keyframes talk { from { transform: scaleY(.3); } to { transform: scaleY(1); } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+@keyframes shiver { 0%, 100% { transform: translateX(-1.2px); } 50% { transform: translateX(1.2px); } }
+@keyframes pop { from { transform: translateY(64px); } to { transform: translateY(0); } }
+@keyframes blink { 0%, 95%, 100% { transform: scaleY(1); } 97.5% { transform: scaleY(.1); } }
+
+/* ---------- setup ---------- */
+.setup { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 36px; align-items: start; }
+.hero { display: grid; gap: 16px; justify-items: start; }
+.hero-mascot { width: min(280px, 70%); margin-bottom: -6px; }
+h1 { font-size: clamp(2.6rem, 6.5vw, 3.9rem); font-weight: 700; line-height: .98; letter-spacing: -.01em; }
+h1 .core { color: var(--apple); display: block; }
+.tag { font-size: 1.15rem; max-width: 34ch; }
+.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; gap: 10px; max-width: 40ch; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.steps li::before {
+  content: counter(s);
+  font: 700 1rem var(--font-display);
+  width: 2em; height: 2em;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+}
+.hero .fine { max-width: 40ch; }
+.hero .fine i { font-family: var(--font-type); font-style: normal; font-weight: 700; color: var(--ink); }
+
+.setup-form { display: grid; gap: 20px; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px; }
+legend, .label { font: 600 1rem var(--font-display); padding: 0; margin-bottom: 8px; display: block; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: grid; gap: 4px; }
+.field > span { font-size: .85rem; font-weight: 700; color: var(--muted); }
+input[type="text"], select {
+  font: inherit; color: var(--ink);
+  background: var(--field);
+  border: 2px solid var(--outline);
+  border-radius: 12px;
+  padding: .5em .7em;
+  width: 100%;
+  min-width: 0;
+}
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span {
+  display: block;
+  font: 600 .95rem var(--font-display);
+  padding: .42em .85em;
+  border: 2px solid var(--outline);
+  border-radius: 99px;
+  background: var(--field);
+}
+.seg input:checked + span { background: var(--apple); color: var(--apple-ink); box-shadow: 0 3px 0 var(--outline); }
+.seg input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+.check { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; cursor: pointer; }
+.check input { width: 1.2em; height: 1.2em; margin: .2em 0 0; accent-color: var(--apple); }
+.checks { display: grid; gap: 8px; }
+.checks.inline { grid-template-columns: repeat(2, auto); justify-content: start; gap: 8px 26px; }
+.voice-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+input[type="range"] { width: 100%; accent-color: var(--apple); }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+hr { border: 0; border-top: 2px dashed var(--rule); margin: 0; }
+
+/* ---------- play ---------- */
+.bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 1.3rem var(--font-display); margin-right: auto; }
+.brand svg { width: 46px; height: 46px; display: block; }
+.brand .core { color: var(--apple); }
+.play-grid { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 26px; align-items: start; }
+.roles { font: 600 1.3rem/1.3 var(--font-display); margin-bottom: 14px; }
+.roles b { color: var(--apple); font-weight: 700; }
+.stage { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 24px; align-items: center; }
+.mascot-wrap { position: relative; }
+.card { position: relative; padding: 0; }
+.card::before {
+  content: "";
+  position: absolute; left: -12.5px; top: 50%;
+  width: 20px; height: 20px;
+  background: var(--paper);
+  border-left: 2.5px solid var(--outline);
+  border-bottom: 2.5px solid var(--outline);
+  transform: translateY(-50%) rotate(45deg);
+}
+.card-head {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 10px 18px 8px;
+  border-bottom: 2px solid var(--apple);
+  font: 600 .85rem var(--font-display);
+  color: var(--muted);
+}
+.entry { padding: 2px 18px 12px; font-family: var(--font-type); font-size: 1.08rem; line-height: 1.4; }
+.entry > * { padding: 10px 0; border-bottom: 1px solid var(--rule); }
+.entry > *:last-child { border-bottom: 0; padding-bottom: 4px; }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; min-height: 3.1rem; }
+.headword { font-weight: 700; font-size: 1.6rem; letter-spacing: .03em; overflow-wrap: anywhere; }
+.headword.redacted {
+  display: inline-block; width: 9ch; height: .95em; border-radius: 5px; align-self: center;
+  background: repeating-linear-gradient(120deg, var(--ink) 0 7px, transparent 7px 10px);
+  opacity: .3;
+}
+.pron { color: var(--muted); }
+.pos { font-style: italic; }
+.def b { font-weight: 700; }
+.sent { font-style: italic; }
+.blank { display: inline-block; width: 6ch; border-bottom: 2.5px solid var(--ink); transform: translateY(-.1em); }
+.sent b { font-style: normal; }
+.origin { color: var(--muted); }
+.origin b { color: var(--ink); font-weight: 700; }
+.card-hint { font-family: var(--font-body); font-size: .98rem; color: var(--muted); }
+
+.timer { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.timer-track { flex: 1; height: 20px; border: 2.5px solid var(--outline); border-radius: 99px; background: var(--paper); overflow: hidden; }
+.timer-fill { height: 100%; width: 100%; background: repeating-linear-gradient(90deg, var(--worm) 0 16px, var(--worm-deep) 16px 18px); }
+.timer.low .timer-fill { background: var(--apple); }
+.timer-num { font: 700 1.2rem var(--font-display); font-variant-numeric: tabular-nums; min-width: 3.2ch; text-align: right; }
+.timer.low .timer-num { color: var(--bad); }
+
+.clues { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.note { margin-top: 14px; padding: 10px 14px; border: 2px dashed var(--outline); border-radius: 12px; background: var(--paper); font-size: .95rem; }
+
+.answer { margin-top: 20px; display: grid; gap: 6px; }
+.answer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+#answer {
+  font: 700 clamp(1.5rem, 4.6vw, 2.2rem)/1.2 var(--font-type);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2.5px solid var(--outline);
+  border-radius: 16px;
+  box-shadow: inset 0 4px 0 var(--field);
+  padding: .5em .4em .4em;
+  width: 100%;
+  caret-color: var(--apple);
+}
+#answer::placeholder { font: 400 1rem var(--font-body); letter-spacing: 0; text-transform: none; color: var(--muted); opacity: 1; }
+#answer.shake { animation: shake .3s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+.result { margin-top: 20px; display: grid; gap: 14px; }
+.verdict { font-size: 2rem; line-height: 1; }
+.verdict.ok { color: var(--good); }
+.verdict.no { color: var(--bad); }
+.cmp { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; }
+.cmp-label { font: 600 .82rem var(--font-display); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.cmp-none { color: var(--muted); font-style: italic; }
+.tiles { display: flex; flex-wrap: wrap; gap: 5px; }
+.tile {
+  font: 700 1.2rem/1 var(--font-type); text-transform: uppercase;
+  width: 1.75em; height: 1.95em; padding-top: .1em;
+  display: grid; place-items: center;
+  border: 2px solid var(--outline); border-radius: 8px;
+  background: var(--paper);
+}
+.tile.miss { background: var(--bad-fill); color: #fff; text-decoration: line-through; }
+.tile.need { background: var(--good-fill); color: #fff; }
+.tiles.pop .tile { animation: tile .3s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+@keyframes tile { from { transform: translateY(8px) scale(.6); opacity: 0; } }
+.legend { font-size: .88rem; color: var(--muted); }
+
+.ledger { display: grid; gap: 16px; }
+.ledger-title { font: 600 .85rem var(--font-display); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.player { padding: 16px; display: grid; gap: 8px; }
+.player.is-up { box-shadow: 0 5px 0 var(--apple); }
+.player-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.player-name { font: 700 1.15rem var(--font-display); overflow-wrap: anywhere; }
+.badge { font: 600 .72rem var(--font-display); text-transform: uppercase; letter-spacing: .06em; padding: .25em .7em; border-radius: 99px; border: 2px solid var(--outline); white-space: nowrap; }
+.is-up .badge { background: var(--apple); color: var(--apple-ink); }
+.lv-name { font: 600 1rem var(--font-display); }
+.lv-num { color: var(--muted); font-size: .88rem; margin-left: 6px; }
+.ladder { display: flex; align-items: flex-end; gap: 3px; height: 34px; }
+.ladder svg { width: 25px; height: 25px; overflow: visible; }
+.ladder path { stroke: var(--sketch); stroke-width: 1.8; fill: transparent; stroke-linejoin: round; stroke-linecap: round; }
+.ladder .a-full .body { fill: var(--apple); }
+.ladder .a-cur { width: 33px; height: 33px; }
+.ladder .a-cur .body { fill: var(--apple); }
+.ladder .a-cur .leaf { fill: var(--leaf); }
+.ladder .leaf { fill: transparent; }
+.next-hint { font-size: .88rem; color: var(--muted); }
+.meter { display: flex; gap: 3px; align-items: center; }
+.meter i { width: 17px; height: 9px; border-radius: 3px; border: 1.5px solid var(--sketch); }
+.meter i.on-up { background: var(--good-fill); border-color: var(--good-fill); }
+.meter i.on-down { background: var(--bad-fill); border-color: var(--bad-fill); }
+.meter i.mid { width: 2px; height: 15px; border: 0; border-radius: 1px; background: var(--sketch); margin: 0 2px; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0; }
+.stats div { display: grid; }
+.stats dt { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.stats dd { margin: 0; font: 600 1.15rem var(--font-display); font-variant-numeric: tabular-nums; }
+
+.burst { position: absolute; left: 72%; top: 28%; width: 0; height: 0; pointer-events: none; }
+.burst i {
+  position: absolute; left: -7px; top: -9px; width: 14px; height: 18px;
+  background: var(--leaf); border: 2px solid var(--outline); border-radius: 2px 70% 2px 70%;
+  opacity: 0; animation: fly 1s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+.burst i.pip { width: 12px; height: 12px; border-radius: 50%; background: var(--apple); }
+@keyframes fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0) scale(.4); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1); }
+}
+
+/* ---------- summary ---------- */
+.summary-head { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 20px; align-items: center; margin-bottom: 22px; }
+.summary-head h2 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 24px; }
+.sum { display: grid; gap: 14px; align-content: start; }
+.sum h3 { font-size: 1.4rem; }
+.sum h4 { font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.missed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-family: var(--font-type); }
+.missed li { border-bottom: 1px solid var(--rule); padding-bottom: 6px; }
+.missed span { color: var(--muted); }
+
+@media (max-width: 880px) {
+  .setup { grid-template-columns: 1fr; }
+  .play-grid { grid-template-columns: 1fr; }
+  .ledger { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .ledger-title { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .stage { grid-template-columns: 1fr; gap: 14px; }
+  .mascot-wrap { width: 132px; }
+  .card::before { left: 52px; top: -12.5px; transform: rotate(135deg); }
+  .row2, .answer-row, .voice-row { grid-template-columns: 1fr; }
+  .cmp { grid-template-columns: 1fr; gap: 6px; }
+  .cmp .tiles { margin-bottom: 8px; }
+  .checks.inline { grid-template-columns: 1fr; }
+  .summary-head { grid-template-columns: 96px minmax(0, 1fr); }
+  .panel { padding: 18px; }
+  .card { padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ================= SETUP ================= -->
+  <section class="setup" id="screen-setup">
+    <div class="hero">
+      <div class="hero-mascot" id="heroMascot"></div>
+      <h1><span class="core">Core</span> Vocabulary</h1>
+      <p class="tag">A spelling game for two, hosted by Wormsworth. He lives in an apple and has read the dictionary twice.</p>
+      <ol class="steps">
+        <li>Wormsworth says a word.</li>
+        <li>One of you spells it out loud.</li>
+        <li>The other types exactly what they hear and presses Enter.</li>
+      </ol>
+      <p class="fine">Right answers bring harder words. A few misses ease things up. <span id="wordCount">800</span> words on eight levels, from <i>garden</i> to <i>scherenschnitte</i>.</p>
+    </div>
+
+    <form class="panel setup-form" id="setupForm" autocomplete="off">
+      <fieldset>
+        <legend>Who is playing</legend>
+        <div class="seg">
+          <label><input type="radio" name="spellers" id="spellers2" value="2" checked><span>We take turns spelling</span></label>
+          <label><input type="radio" name="spellers" id="spellers1" value="1"><span>One speller, one typist</span></label>
+        </div>
+        <div class="row2">
+          <label class="field" for="name0"><span id="name0Label">Speller 1</span><input type="text" id="name0" maxlength="16" placeholder="Speller 1"></label>
+          <label class="field" for="name1"><span id="name1Label">Speller 2</span><input type="text" id="name1" maxlength="16" placeholder="Speller 2"></label>
+        </div>
+        <label class="field" for="swapEvery" id="swapField"><span>Swap roles</span>
+          <select id="swapEvery">
+            <option value="1">after every word</option>
+            <option value="3">after every 3 words</option>
+            <option value="5">after every 5 words</option>
+            <option value="0">only when we choose to</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Time limit per word</legend>
+        <div class="seg">
+          <label><input type="radio" name="timeLimit" id="time0" value="0" checked><span>No limit</span></label>
+          <label><input type="radio" name="timeLimit" id="time15" value="15"><span>15 s</span></label>
+          <label><input type="radio" name="timeLimit" id="time30" value="30"><span>30 s</span></label>
+          <label><input type="radio" name="timeLimit" id="time45" value="45"><span>45 s</span></label>
+          <label><input type="radio" name="timeLimit" id="time60" value="60"><span>60 s</span></label>
+          <label><input type="radio" name="timeLimit" id="time90" value="90"><span>90 s</span></label>
+        </div>
+      </fieldset>
+
+      <div class="row2">
+        <label class="field" for="startLevel"><span>Starting level</span><select id="startLevel"></select></label>
+        <div class="field"><span>Sound effects</span>
+          <label class="check" for="sfx" style="padding-top:.45em"><input type="checkbox" id="sfx" checked><span>Chimes, buzzers and the clock</span></label>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Clues the speller may ask for</legend>
+        <div class="checks inline">
+          <label class="check" for="clueDef"><input type="checkbox" id="clueDef" checked><span>Definition</span></label>
+          <label class="check" for="cluePos"><input type="checkbox" id="cluePos" checked><span>Part of speech</span></label>
+          <label class="check" for="clueSent"><input type="checkbox" id="clueSent" checked><span>Use in a sentence</span></label>
+          <label class="check" for="clueOrigin"><input type="checkbox" id="clueOrigin" checked><span>Country of origin</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wormsworth's voice</legend>
+        <div class="voice-row">
+          <label class="field" for="voice"><span>Voice</span><select id="voice"><option value="">Automatic (US English)</option></select></label>
+          <button type="button" class="btn btn-sm" id="voiceTest">Test voice</button>
+        </div>
+        <label class="field" for="rate"><span>Speaking speed</span><input type="range" id="rate" min="0.6" max="1.1" step="0.05" value="0.85"></label>
+        <p class="fine" id="voiceNote" hidden>This browser has no speech voice, so each word will be shown for the typist to read aloud.</p>
+        <label class="check" for="showWord"><input type="checkbox" id="showWord"><span>Keep the word on screen for the typist to read aloud. The speller looks away.</span></label>
+      </fieldset>
+
+      <hr>
+      <div class="actions">
+        <button type="submit" class="btn btn-primary btn-big" id="startBtn">Start spelling</button>
+        <button type="button" class="btn" id="resumeBtn" hidden>Resume game</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ================= PLAY ================= -->
+  <section id="screen-play" hidden>
+    <header class="bar">
+      <div class="brand"><span id="brandIcon"></span><span><span class="core">Core</span> Vocabulary</span></div>
+      <button type="button" class="btn btn-sm" id="soundBtn" aria-pressed="true">Sound on</button>
+      <button type="button" class="btn btn-sm" id="settingsBtn">Settings</button>
+      <button type="button" class="btn btn-sm" id="endBtn">End game</button>
+    </header>
+
+    <div class="play-grid">
+      <div class="play-main">
+        <p class="roles" id="roles"></p>
+
+        <div class="stage">
+          <div class="mascot-wrap" id="stageMascot"></div>
+          <div class="panel card" id="card">
+            <div class="card-head"><span id="cardLevel"></span><span id="cardCount"></span></div>
+            <div class="entry">
+              <div class="headline">
+                <span class="headword redacted" id="headword"></span>
+                <span class="pron" id="pron"></span>
+                <span class="pos" id="posOut"></span>
+              </div>
+              <p class="def" id="defOut" hidden></p>
+              <p class="sent" id="sentOut" hidden></p>
+              <p class="origin" id="originOut" hidden></p>
+              <p class="card-hint" id="cardHint" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="timer" id="timer" hidden>
+          <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+          <span class="timer-num" id="timerNum" aria-label="seconds left"></span>
+        </div>
+
+        <div class="clues" id="clues">
+          <button type="button" class="btn btn-sm" id="clueSay"><kbd>1</kbd> Say it again</button>
+          <button type="button" class="btn btn-sm" id="clueDefBtn"><kbd>2</kbd> Definition</button>
+          <button type="button" class="btn btn-sm" id="cluePosBtn"><kbd>3</kbd> Part of speech</button>
+          <button type="button" class="btn btn-sm" id="clueSentBtn"><kbd>4</kbd> Use it in a sentence</button>
+          <button type="button" class="btn btn-sm" id="clueOriginBtn"><kbd>5</kbd> Origin</button>
+          <button type="button" class="btn btn-sm" id="peekBtn">Hold to peek (typist only)</button>
+        </div>
+        <p class="note" id="speechNote" hidden>Wormsworth could not speak in this browser, so the word is shown on his card. Typist: read it aloud and keep the screen away from the speller.</p>
+
+        <form class="answer" id="answerForm" autocomplete="off">
+          <label class="label" for="answer" id="answerLabel">Typist, enter the letters as you hear them</label>
+          <div class="answer-row">
+            <input type="text" id="answer" name="spelling-entry" inputmode="text" enterkeyhint="done" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="letters go here">
+            <button type="submit" class="btn btn-primary btn-big" id="submitBtn">Enter</button>
+          </div>
+        </form>
+
+        <div class="panel result" id="result" hidden aria-live="polite"></div>
+      </div>
+
+      <aside class="ledger" id="ledger" aria-label="Scores"></aside>
+    </div>
+  </section>
+
+  <!-- ================= SUMMARY ================= -->
+  <section id="screen-summary" hidden>
+    <div class="summary-head">
+      <div id="summaryMascot"></div>
+      <div>
+        <h2>Session report</h2>
+        <p class="tag" id="summaryLine"></p>
+      </div>
+    </div>
+    <div class="summary-grid" id="summaryBody"></div>
+    <div class="actions">
+      <button type="button" class="btn btn-primary btn-big" id="againBtn">Play again</button>
+      <button type="button" class="btn" id="backBtn">Change settings</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/*MASCOT-START*/
+function mascotSVG(opts) {
+  opts = opts || {};
+  var uid = opts.uid || 'w', mood = opts.mood || null, icon = !!opts.icon;
+  var O = '#2b2440';
+  function m(moods, s) {
+    if (mood) return moods.split(' ').indexOf(mood) >= 0 ? s : '';
+    return s.replace(/^<(\w+)/, '<$1 data-m="' + moods + '"');
+  }
+  var body = 'M148 192 C148 140 178 130 176 96';
+  var art = [
+    '<defs>',
+    '<radialGradient id="' + uid + '-skin" cx="36%" cy="30%" r="80%"><stop offset="0" stop-color="#f4614f"/><stop offset="1" stop-color="#c9282c"/></radialGradient>',
+    '<clipPath id="' + uid + '-hole"><rect x="-40" y="-80" width="320" height="236"/><ellipse cx="148" cy="156" rx="22" ry="14"/></clipPath>',
+    '</defs>',
+    icon ? '' : '<ellipse cx="112" cy="229" rx="64" ry="7" fill="' + O + '" opacity=".14"/>',
+    // apple
+    '<path d="M112 108 C94 90 40 92 35 148 C30 196 68 230 96 227 C104 226 108 222 112 222 C116 222 120 226 128 227 C156 230 194 196 189 148 C184 92 130 90 112 108Z" fill="url(#' + uid + '-skin)" stroke="' + O + '" stroke-width="4.5" stroke-linejoin="round"/>',
+    '<path d="M57 136 C59 121 68 111 81 108" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".45"/>',
+    // leaf and stem
+    '<path d="M104 91 C93 68 64 62 48 72 C58 93 85 101 104 91Z" fill="#74bb3e" stroke="' + O + '" stroke-width="4.5" stroke-linejoin="round"/>',
+    '<path d="M97 88 C86 80 73 76 61 76" fill="none" stroke="' + O + '" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>',
+    '<path d="M112 113 C111 99 107 89 99 81" fill="none" stroke="' + O + '" stroke-width="13" stroke-linecap="round"/>',
+    '<path d="M112 113 C111 99 107 89 99 81" fill="none" stroke="#9a6238" stroke-width="5.5" stroke-linecap="round"/>',
+    // front door
+    '<ellipse cx="148" cy="156" rx="25" ry="17" fill="#55151c" stroke="' + O + '" stroke-width="4.5"/>',
+    // Wormsworth
+    '<g clip-path="url(#' + uid + '-hole)"><g class="worm">',
+    '<path d="' + body + '" fill="none" stroke="' + O + '" stroke-width="39" stroke-linecap="round"/>',
+    '<path d="' + body + '" fill="none" stroke="#bfe05a" stroke-width="30" stroke-linecap="round"/>',
+    '<path d="M152 132 Q161 142 173 143" fill="none" stroke="#8fba36" stroke-width="3" stroke-linecap="round"/>',
+    '<path d="M160.5 116 Q170 125.5 182.5 125" fill="none" stroke="#8fba36" stroke-width="3" stroke-linecap="round"/>',
+    '<path d="M175 46 C172 37 177 31 185 33" fill="none" stroke="' + O + '" stroke-width="4" stroke-linecap="round"/>',
+    '<circle cx="176" cy="72" r="27" fill="#bfe05a" stroke="' + O + '" stroke-width="4.5"/>',
+    '<circle cx="158" cy="87" r="3.6" fill="#ff8f80" opacity=".8"/><circle cx="194.5" cy="87" r="3.6" fill="#ff8f80" opacity=".8"/>',
+    // bow tie
+    '<path d="M176.5 104.5 L158 95 L158 114Z M176.5 104.5 L195 95 L195 114Z" fill="#3f6fe0" stroke="' + O + '" stroke-width="3.5" stroke-linejoin="round"/>',
+    '<circle cx="176.5" cy="104.5" r="4.6" fill="#3f6fe0" stroke="' + O + '" stroke-width="3.5"/>',
+    // glasses
+    '<circle cx="164" cy="70" r="10.5" fill="#fff" fill-opacity=".72" stroke="' + O + '" stroke-width="4"/>',
+    '<circle cx="189" cy="70" r="10.5" fill="#fff" fill-opacity=".72" stroke="' + O + '" stroke-width="4"/>',
+    '<path d="M174.5 69 Q176.5 65.5 178.5 69 M153.5 68 L149.8 66 M199.5 68 L202.6 66" fill="none" stroke="' + O + '" stroke-width="3.5" stroke-linecap="round"/>',
+    m('idle sad nervous', '<g class="blink"><circle cx="165.5" cy="71" r="3.9" fill="' + O + '"/><circle cx="187.5" cy="71" r="3.9" fill="' + O + '"/><circle cx="166.8" cy="69.6" r="1.2" fill="#fff"/><circle cx="188.8" cy="69.6" r="1.2" fill="#fff"/></g>'),
+    m('happy', '<path d="M159 73 Q164 65 169 73 M184 73 Q189 65 194 73" fill="none" stroke="' + O + '" stroke-width="3.6" stroke-linecap="round"/>'),
+    '<path d="M157.5 66.5 L161 63 M182.5 66.5 L186 63" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>',
+    m('sad nervous', '<path d="M157 56 L169 52.5 M184 52.5 L196 56" fill="none" stroke="' + O + '" stroke-width="3.5" stroke-linecap="round"/>'),
+    // mouths
+    m('idle', '<path class="mood-mouth" d="M170 88 Q176.5 94.5 183 88" fill="none" stroke="' + O + '" stroke-width="3.5" stroke-linecap="round"/>'),
+    m('happy', '<path class="mood-mouth" d="M167.5 86.5 Q176.5 100 185.5 86.5Z" fill="#7b1d2a" stroke="' + O + '" stroke-width="3.5" stroke-linejoin="round"/>'),
+    m('sad', '<path class="mood-mouth" d="M170 93.5 Q176.5 87 183 93.5" fill="none" stroke="' + O + '" stroke-width="3.5" stroke-linecap="round"/>'),
+    m('nervous', '<path class="mood-mouth" d="M168 91 l4.2 -3.2 l4.2 3.2 l4.2 -3.2 l4.2 3.2" fill="none" stroke="' + O + '" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>'),
+    mood ? '' : '<ellipse class="talk-mouth" cx="176.5" cy="89.5" rx="5" ry="4.6" fill="#7b1d2a" stroke="' + O + '" stroke-width="3"/>',
+    m('nervous', '<path d="M210 45 C205.5 53 206 58.5 210 58.5 C214 58.5 214.5 53 210 45Z" fill="#8fd6f7" stroke="' + O + '" stroke-width="2.5" stroke-linejoin="round"/>'),
+    '</g></g>'
+  ].join('');
+  if (icon) {
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="Core Vocabulary icon">' +
+      '<rect width="240" height="240" rx="56" fill="#bfe3f2"/><g transform="translate(14 0) scale(.9)">' + art + '</g></svg>';
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" class="mascot" data-mood="idle" viewBox="0 0 240 240" role="img" aria-label="Wormsworth, a worm in glasses and a bow tie, leaning out of his apple">' + art + '</svg>';
+}
+/*MASCOT-END*/
+
+/* ---------------- word bank ----------------
+   [word, part of speech, definition, sentence, pronunciation guide (typist's peek)] */
+const LEVELS = ['Seedling', 'Sprout', 'Blossom', 'Crabapple', 'Gala', 'Honeycrisp', 'Granny Smith', 'Golden Delicious'];
+/*WORDS-START*/
+const WORDS = [
+[
+["garden","noun","A piece of ground where flowers or vegetables are grown.","We planted tomatoes in the garden behind the house.","","Germanic>French"],
+["pencil","noun","A thin writing tool with a core of graphite.","She sharpened her pencil before the test.","","Latin>French"],
+["rabbit","noun","A small furry animal with long ears and a short tail.","A rabbit hopped across the lawn at dawn.","","Middle English"],
+["window","noun","An opening in a wall, usually fitted with glass, that lets in light.","He opened the window to let in the breeze.","","Old Norse"],
+["button","noun","A small disk sewn onto clothing to fasten it.","A button popped off my coat this morning.","","Germanic>French"],
+["yellow","adjective","Having the color of ripe lemons or egg yolks.","The yellow school bus stopped at the corner.","","Old English"],
+["basket","noun","A container woven from strips of wood, cane, or wire.","We filled the basket with apples from the orchard.","","French"],
+["winter","noun","The coldest season of the year.","The lake freezes solid every winter.","","Old English"],
+["monkey","noun","A lively, long-tailed primate that often lives in trees.","The monkey swung from branch to branch.","","Low German"],
+["purple","adjective","Having a color between red and blue.","Her purple scarf stood out in the crowd.","","Greek>Latin>Old English"],
+["kitten","noun","A young cat.","The kitten chased a ball of yarn across the floor.","","French"],
+["dinner","noun","The main meal of the day, usually eaten in the evening.","We had spaghetti for dinner last night.","","Latin>French"],
+["planet","noun","A large body in space that orbits a star.","Saturn is the planet famous for its rings.","","Greek>Latin>French"],
+["silver","noun","A shiny grayish-white precious metal.","The trophy was made of polished silver.","","Old English"],
+["bridge","noun","A structure that carries a road or path over a river or gap.","We walked across the bridge to reach the park.","","Old English"],
+["cheese","noun","A food made from pressed milk curds.","He added extra cheese to his sandwich.","","Latin>Old English"],
+["friend","noun","A person you like, trust, and enjoy spending time with.","My best friend lives two doors down.","","Old English"],
+["school","noun","A place where students go to learn.","The school opens its doors at eight o'clock.","","Greek>Latin>Old English"],
+["orange","noun","A round citrus fruit with a thick reddish-yellow rind.","She peeled an orange and shared the slices.","","Sanskrit>Arabic>French"],
+["pocket","noun","A small pouch sewn into clothing for carrying things.","He kept the key in his front pocket.","","Germanic>French"],
+["apple","noun","A round fruit with red, green, or yellow skin and crisp flesh.","She packed an apple in her lunch bag.","","Old English"],
+["river","noun","A large natural stream of water flowing toward a sea or lake.","We paddled a canoe down the river.","","Latin>French"],
+["tiger","noun","A large wild cat with orange fur and black stripes.","The tiger paced along the edge of the pond.","","Greek>Latin"],
+["table","noun","A piece of furniture with a flat top and legs.","Please set the plates on the table.","","Latin>French"],
+["water","noun","The clear liquid that falls as rain and fills lakes and seas.","He poured a glass of cold water.","","Old English"],
+["paper","noun","Thin sheets made from wood pulp, used for writing or wrapping.","She folded the paper into a tiny boat.","","Greek>Latin>French"],
+["horse","noun","A large hoofed animal used for riding and pulling loads.","The horse trotted across the field.","","Old English"],
+["music","noun","Sounds arranged in a pleasing pattern of melody and rhythm.","Soft music played in the waiting room.","","Greek>Latin>French"],
+["bread","noun","A baked food made from flour, water, and yeast.","The smell of fresh bread filled the bakery.","","Old English"],
+["cloud","noun","A white or gray mass of tiny water drops floating in the sky.","A dark cloud drifted over the hills.","","Old English"],
+["grass","noun","The green plants with narrow leaves that cover lawns and fields.","The grass was wet with morning dew.","","Old English"],
+["house","noun","A building in which people live.","Their house has a bright red door.","","Old English"],
+["mouse","noun","A small rodent with a pointed nose and a long thin tail.","A mouse scurried under the barn door.","","Old English"],
+["snake","noun","A long reptile with no legs.","A green snake slid through the reeds.","","Old English"],
+["train","noun","A line of connected railroad cars pulled by an engine.","The train pulled into the station on time.","","Latin>French"],
+["truck","noun","A large motor vehicle built for carrying heavy loads.","A truck delivered the new piano.","","Greek>Latin"],
+["smile","noun","A happy expression in which the corners of the mouth turn up.","Her smile lit up the whole room.","","Scandinavian"],
+["spoon","noun","A utensil with a small shallow bowl on a handle, used for eating.","He stirred his tea with a spoon.","","Old English"],
+["stone","noun","A small piece of rock.","She skipped a flat stone across the pond.","","Old English"],
+["storm","noun","Weather with strong wind and heavy rain or snow.","The storm knocked down three trees.","","Old English"],
+["sugar","noun","A sweet substance made from cane or beets.","He stirred a spoonful of sugar into the lemonade.","","Sanskrit>Arabic>French"],
+["tooth","noun","One of the hard white objects in the mouth used for biting.","My little brother lost his first tooth.","","Old English"],
+["tower","noun","A tall, narrow building or part of a building.","The clock tower chimes every hour.","","Greek>Latin>French"],
+["zebra","noun","An African animal like a horse with black and white stripes.","A zebra grazed beside the watering hole.","","Portuguese"],
+["lemon","noun","A sour yellow citrus fruit.","She squeezed a lemon over the fish.","","Persian>Arabic>French"],
+["melon","noun","A large, juicy fruit with a thick rind.","We sliced a ripe melon for dessert.","","Greek>Latin>French"],
+["onion","noun","A round vegetable with a sharp taste and many layers.","Chopping an onion made his eyes water.","","Latin>French"],
+["pepper","noun","A spicy seasoning made from ground dried berries.","He sprinkled pepper on his eggs.","","Sanskrit>Greek>Latin"],
+["butter","noun","A soft yellow food made by churning cream.","She spread butter on the warm toast.","","Greek>Latin>Old English"],
+["carrot","noun","A long orange root vegetable.","The rabbit nibbled on a carrot.","","Greek>Latin>French"],
+["cherry","noun","A small round red fruit with a pit.","He put a cherry on top of the sundae.","","Greek>Latin>French"],
+["circle","noun","A perfectly round flat shape.","The children sat in a circle on the rug.","","Latin>French"],
+["candle","noun","A stick of wax with a wick that is burned to give light.","She lit a candle when the power went out.","","Latin>Old English"],
+["castle","noun","A large stone building with thick walls and towers.","The old castle stands on a cliff above the sea.","","Latin>French"],
+["corner","noun","The place where two lines, walls, or streets meet.","The bakery is on the corner of Elm Street.","","Latin>French"],
+["cotton","noun","A soft white fiber used to make cloth.","This shirt is made of pure cotton.","","Arabic>French"],
+["dragon","noun","A giant, fire-breathing reptile in stories and legends.","The knight faced the dragon at the cave.","","Greek>Latin>French"],
+["finger","noun","One of the five long parts at the end of the hand.","She wore a ring on her little finger.","","Old English"],
+["flower","noun","The colorful part of a plant that makes seeds.","A single flower grew by the fence.","","Latin>French"],
+["forest","noun","A large area of land covered with trees.","Deer live deep in the forest.","","Latin>French"],
+["gentle","adjective","Soft, mild, and kind.","Be gentle when you hold the baby chick.","","Latin>French"],
+["hammer","noun","A tool with a heavy head used for pounding nails.","He drove the nail in with a hammer.","","Old English"],
+["jacket","noun","A short, light coat.","Bring a jacket in case it gets cold.","","French"],
+["jungle","noun","A thick tropical forest.","Parrots called from high in the jungle.","","Sanskrit>Hindi"],
+["ladder","noun","A set of steps between two long sides, used for climbing.","She climbed the ladder to reach the roof.","","Old English"],
+["market","noun","A place where people gather to buy and sell goods.","We bought peaches at the farmers market.","","Latin>French"],
+["mirror","noun","A smooth glass surface that reflects an image.","He checked his tie in the mirror.","","Latin>French"],
+["mitten","noun","A warm hand covering with one section for the thumb.","She dropped a mitten in the snow.","","French"],
+["napkin","noun","A small cloth or paper used to wipe the mouth at meals.","He tucked a napkin under his chin.","","Latin>French"],
+["number","noun","A word or symbol that shows how many.","Pick a number between one and ten.","","Latin>French"],
+["parrot","noun","A colorful tropical bird that can copy sounds.","The parrot repeated every word we said.","","French"],
+["pillow","noun","A soft cushion for resting the head.","She fluffed the pillow before bed.","","Latin>Old English"],
+["pirate","noun","A robber who attacks ships at sea.","The pirate hid his gold on an island.","","Greek>Latin"],
+["puppet","noun","A small figure moved by strings or by a hand inside it.","The puppet waved from behind the curtain.","","Latin>French"],
+["puzzle","noun","A game or problem that tests clever thinking.","We finished the puzzle before bedtime.","","English"],
+["rocket","noun","A vehicle that is pushed into space by burning fuel.","The rocket roared off the launch pad.","","Italian"],
+["sister","noun","A girl or woman who has the same parents as another person.","My sister taught me to ride a bike.","","Old Norse"],
+["spider","noun","A small creature with eight legs that spins webs.","A spider spun a web across the porch.","","Old English"],
+["summer","noun","The warmest season of the year.","We swim at the lake every summer.","","Old English"],
+["sunset","noun","The time in the evening when the sun goes down.","The sky turned pink at sunset.","","Old English"],
+["ticket","noun","A printed slip that shows you have paid to enter or ride.","She bought a ticket for the afternoon show.","","French"],
+["tunnel","noun","A passage dug under the ground or through a hill.","The train rushed through a long tunnel.","","French"],
+["turtle","noun","A reptile with a hard shell that covers its body.","A turtle sunned itself on a log.","","Latin>French"],
+["wagon","noun","A vehicle with four wheels that is pulled to carry loads.","He pulled his little brother in a red wagon.","","Dutch"],
+["walnut","noun","A large nut with a hard, wrinkled shell.","She cracked a walnut with a hammer.","","Old English"],
+["wizard","noun","A person in stories who has magical powers.","The wizard waved his wand at the frog.","","Middle English"],
+["ribbon","noun","A long, narrow strip of cloth used for tying or decorating.","She tied a blue ribbon around the gift.","","French"],
+["shadow","noun","A dark shape made when something blocks the light.","His shadow stretched across the sidewalk.","","Old English"],
+["shovel","noun","A tool with a wide scoop and a long handle, used for digging.","He cleared the driveway with a shovel.","","Old English"],
+["bottle","noun","A container with a narrow neck, used for holding liquids.","She filled the bottle at the fountain.","","Latin>French"],
+["bucket","noun","A round, open container with a handle, used for carrying things.","He carried a bucket of sand to the castle.","","French"],
+["donkey","noun","An animal like a small horse with long ears.","The donkey carried baskets up the hill.","","English"],
+["eagle","noun","A large bird of prey with sharp eyesight and strong wings.","An eagle soared above the canyon.","","Latin>French"],
+["kettle","noun","A metal pot with a spout, used for boiling water.","The kettle began to whistle on the stove.","","Latin>Old Norse"],
+["lizard","noun","A small reptile with four legs and a long tail.","A lizard darted across the warm rock.","","Latin>French"],
+["magnet","noun","A piece of metal that pulls iron toward it.","A magnet holds the drawing on the fridge.","","Greek>Latin"],
+["muffin","noun","A small, round, sweet bread baked in a cup-shaped pan.","She ate a blueberry muffin for breakfast.","","Low German"],
+["ocean","noun","The huge body of salt water that covers most of the earth.","Waves from the ocean crashed on the rocks.","","Greek>Latin>French"],
+["peanut","noun","A small nut that grows underground in a thin shell.","He tossed a peanut to the squirrel.","","English"],
+["pickle","noun","A cucumber that has been kept in salty water or vinegar.","She added a pickle to her burger.","","Dutch"]
+],
+[
+["balloon","noun","A thin rubber bag that is filled with air or gas.","The red balloon floated up toward the ceiling.","","Italian>French"],
+["library","noun","A place where books are kept for people to read or borrow.","I returned three books to the library.","","Latin>French"],
+["kitchen","noun","The room where food is prepared and cooked.","The kitchen smelled like fresh bread.","","Latin>Old English"],
+["journey","noun","A trip from one place to another, especially a long one.","The journey across the desert took nine days.","","Latin>French"],
+["village","noun","A small community in the countryside, smaller than a town.","The village had one bakery and one post office.","","Latin>French"],
+["blanket","noun","A large piece of soft cloth used to keep warm.","She wrapped herself in a wool blanket.","","French"],
+["surprise","noun","Something unexpected.","The party was a complete surprise to my sister.","","French"],
+["tomorrow","noun","The day after today.","Tomorrow is the first day of spring.","","Old English"],
+["mountain","noun","A very high, steep area of land.","Snow covered the top of the mountain.","","Latin>French"],
+["question","noun","A sentence or phrase that asks for information.","The teacher answered every question we asked.","","Latin>French"],
+["favorite","adjective","Liked more than all others.","Blue is my favorite color.","","Latin>Italian>French"],
+["dolphin","noun","A smart sea mammal with a long, beak-like snout.","A dolphin leaped out of the water beside the boat.","","Greek>Latin>French"],
+["captain","noun","The person in command of a ship or team.","The captain steered the ship into the harbor.","","Latin>French"],
+["bicycle","noun","A vehicle with two wheels that you ride by pushing pedals.","He rode his bicycle to the store.","","Greek>French"],
+["treasure","noun","A collection of valuable things such as gold or jewels.","The pirates buried their treasure on the island.","","Greek>Latin>French"],
+["whisper","verb","To speak very softly, using breath instead of voice.","Please whisper so you don't wake the baby.","","Old English"],
+["giraffe","noun","A tall African animal with a very long neck.","The giraffe nibbled leaves from the top of the tree.","","Arabic>Italian"],
+["compass","noun","A tool with a magnetic needle that shows which way is north.","We used a compass to find our way back to camp.","","Latin>French"],
+["lantern","noun","A light with a protective case that can be carried.","She carried a lantern down the dark path.","","Greek>Latin>French"],
+["thunder","noun","The loud rumbling sound that follows lightning.","Thunder shook the windows during the storm.","","Old English"],
+["feather","noun","One of the light, soft parts that cover a bird's body.","A white feather drifted down from the nest.","","Old English"],
+["violin","noun","A stringed instrument held under the chin and played with a bow.","She practices the violin every afternoon.","","Italian"],
+["blossom","noun","A flower, especially one on a fruit tree.","A pink blossom fell from the cherry tree.","","Old English"],
+["breakfast","noun","The first meal of the day.","We had pancakes for breakfast on Sunday.","","Middle English"],
+["cabbage","noun","A vegetable with a round head of thick green or purple leaves.","He chopped a cabbage for the soup.","","French"],
+["cactus","noun","A desert plant with a thick stem and sharp spines.","A tall cactus grew beside the trail.","","Greek>Latin"],
+["camera","noun","A device used for taking photographs.","She took her camera on the hike.","","Greek>Latin"],
+["canyon","noun","A deep valley with steep rock walls.","A river runs along the bottom of the canyon.","","Latin>Spanish"],
+["carpet","noun","A thick woven covering for a floor.","The cat stretched out on the carpet.","","Latin>Italian>French"],
+["chimney","noun","A tall pipe that carries smoke up and out of a building.","Smoke curled from the cabin chimney.","","Greek>Latin>French"],
+["country","noun","A nation with its own land and government.","Canada is the country north of the United States.","","Latin>French"],
+["cousin","noun","The child of your aunt or uncle.","My cousin visits us every summer.","","Latin>French"],
+["crayon","noun","A stick of colored wax used for drawing.","He drew the sun with a yellow crayon.","","Latin>French"],
+["curtain","noun","A piece of cloth hung to cover a window or a stage.","She pulled the curtain to block the sun.","","Latin>French"],
+["daughter","noun","A person's female child.","Their daughter starts school this fall.","","Old English"],
+["diamond","noun","A very hard, clear precious stone.","The ring holds a single diamond.","","Greek>Latin>French"],
+["dinosaur","noun","A reptile, often huge, that lived millions of years ago.","The museum has the bones of a dinosaur.","","Greek>New Latin"],
+["doctor","noun","A person trained to treat people who are sick or hurt.","The doctor listened to my heartbeat.","","Latin"],
+["emerald","noun","A bright green precious stone.","The crown was set with an emerald.","","Greek>Latin>French"],
+["engine","noun","A machine that uses fuel to make something move.","The engine sputtered and then started.","","Latin>French"],
+["evening","noun","The last part of the day, when the sun goes down.","We took a walk in the cool evening.","","Old English"],
+["family","noun","A group of people who are related to one another.","My family eats dinner together.","","Latin"],
+["festival","noun","A time of celebration with special events.","The town holds a music festival each June.","","Latin>French"],
+["fountain","noun","A structure that sends a stream of water into the air.","Children splashed in the park fountain.","","Latin>French"],
+["freckle","noun","A small brownish spot on the skin.","She has a freckle on the tip of her nose.","","Old Norse"],
+["garbage","noun","Food scraps and other things that are thrown away.","Please take the garbage out to the curb.","","Middle English"],
+["gorilla","noun","The largest of the apes, with a broad chest and dark fur.","The gorilla sat quietly eating leaves.","","Greek>New Latin"],
+["grocery","noun","A store that sells food and household supplies.","He stopped at the grocery for milk.","","Latin>French"],
+["harbor","noun","A sheltered area of water where ships can anchor safely.","Sailboats filled the harbor at sunset.","","Old English"],
+["harvest","noun","The gathering of crops when they are ripe.","The apple harvest begins in September.","","Old English"],
+["holiday","noun","A special day when most people do not work or go to school.","The bank is closed for the holiday.","","Old English"],
+["honest","adjective","Truthful; not lying, cheating, or stealing.","An honest person returned my lost wallet.","","Latin>French"],
+["hundred","noun","The number equal to ten times ten.","The tree is more than a hundred years old.","","Old English"],
+["island","noun","A piece of land completely surrounded by water.","We took a ferry to the island.","","Old English"],
+["jealous","adjective","Unhappy because someone else has what you want.","He felt jealous of his brother's new bike.","","Greek>Latin>French"],
+["kingdom","noun","A country ruled by a king or queen.","The kingdom stretched from the sea to the hills.","","Old English"],
+["kangaroo","noun","An Australian animal that hops and carries its young in a pouch.","A kangaroo bounded across the road.","","Guugu Yimithirr"],
+["laughter","noun","The sound people make when something is funny.","Laughter filled the room after the joke.","","Old English"],
+["lettuce","noun","A leafy green vegetable used in salads.","She added lettuce and tomato to the sandwich.","","Latin>French"],
+["lightning","noun","A bright flash of electricity in the sky during a storm.","Lightning lit up the whole valley.","","Middle English"],
+["meadow","noun","A field of grass and wildflowers.","Cows grazed in the sunny meadow.","","Old English"],
+["medicine","noun","A substance used to treat an illness or ease pain.","Take the medicine twice a day.","","Latin>French"],
+["message","noun","Information sent from one person to another.","She left a message on the kitchen table.","","Latin>French"],
+["minute","noun","A unit of time equal to sixty seconds.","The bus leaves in one minute.","","Latin>French"],
+["mustard","noun","A spicy yellow or brown sauce made from seeds.","He squeezed mustard on his hot dog.","","Latin>French"],
+["nephew","noun","The son of your brother or sister.","Her nephew is learning to walk.","","Latin>French"],
+["octopus","noun","A sea animal with a soft body and eight long arms.","An octopus squeezed into the small jar.","","Greek>New Latin"],
+["orchard","noun","A piece of land where fruit trees are grown.","We picked peaches in the orchard.","","Old English"],
+["ostrich","noun","A very large African bird that runs fast but cannot fly.","An ostrich can outrun a horse.","","Greek>Latin>French"],
+["package","noun","A wrapped box or bundle sent through the mail.","A package arrived on the doorstep.","","Dutch"],
+["pajamas","noun","Loose clothes worn for sleeping.","He wore striped pajamas to bed.","","Persian>Hindi"],
+["parade","noun","A public march with bands and floats to celebrate something.","We watched the parade from the sidewalk.","","Latin>French"],
+["penguin","noun","A black and white seabird that swims but cannot fly.","A penguin waddled across the ice.","","Welsh"],
+["picture","noun","A drawing, painting, or photograph.","She hung a picture of the lake in the hall.","","Latin"],
+["pioneer","noun","One of the first people to settle or explore a new area.","A pioneer built this cabin long ago.","","Latin>French"],
+["pretzel","noun","A salty baked snack twisted into a knot.","He bought a warm pretzel at the game.","","Latin>German"],
+["promise","noun","A statement that you will surely do something.","She kept her promise to call every week.","","Latin"],
+["pyramid","noun","A structure with a square base and four triangular sides.","The oldest pyramid stands in the desert.","","Greek>Latin"],
+["quarter","noun","One of four equal parts of something.","He ate a quarter of the pie.","","Latin>French"],
+["rainbow","noun","An arch of colors seen in the sky after rain.","A rainbow appeared over the barn.","","Old English"],
+["recipe","noun","A set of directions for preparing a food.","This recipe calls for two eggs.","","Latin"],
+["sausage","noun","Ground, seasoned meat packed into a thin casing.","She grilled a sausage for each guest.","","Latin>French"],
+["shoulder","noun","The part of the body where the arm joins the trunk.","He carried the bag over his shoulder.","","Old English"],
+["special","adjective","Different from what is usual; important in some way.","Tonight is a special occasion for our team.","","Latin>French"],
+["station","noun","A regular stopping place for trains or buses.","Meet me at the train station at noon.","","Latin>French"],
+["stranger","noun","A person you do not know.","A stranger helped us fix the flat tire.","","Latin>French"],
+["sweater","noun","A knitted piece of clothing worn on the upper body.","Grandma knitted me a green sweater.","","Old English"],
+["theater","noun","A building where plays or movies are shown.","The theater was full on opening night.","","Greek>Latin>French"],
+["thousand","noun","The number equal to ten times one hundred.","A thousand stars filled the sky.","","Old English"],
+["trumpet","noun","A brass instrument with three valves and a bright sound.","He plays the trumpet in the school band.","","French"],
+["uniform","noun","Special clothes worn by all members of a group.","Each player wore a blue uniform.","","Latin>French"],
+["vacation","noun","A period of time away from school or work for rest or travel.","We spent our vacation at the beach.","","Latin>French"],
+["walrus","noun","A large Arctic sea animal with two long tusks.","A walrus rested on the floating ice.","","Old Norse>Dutch"],
+["whistle","noun","A small device that makes a high, sharp sound when blown.","The referee blew the whistle.","","Old English"],
+["wrinkle","noun","A small fold or crease in skin or cloth.","She ironed a wrinkle out of the shirt.","","Old English"],
+["yogurt","noun","A thick, creamy food made from soured milk.","He stirred berries into his yogurt.","","Turkish"],
+["autumn","noun","The season between summer and winter.","Leaves turn gold in autumn.","","Latin>French"],
+["blizzard","noun","A severe snowstorm with strong winds.","The blizzard closed every road in town.","","American English"],
+["ceiling","noun","The inside top surface of a room.","A fan hung from the ceiling.","","Middle English"],
+["cereal","noun","A breakfast food made from grain.","She poured milk over her cereal.","","Latin"]
+],
+[
+["calendar","noun","A chart showing the days, weeks, and months of a year.","I circled the date on my calendar.","","Latin>French"],
+["vegetable","noun","A plant or part of a plant that is eaten as food.","Spinach is my least favorite vegetable.","","Latin>French"],
+["beautiful","adjective","Very pleasing to look at or listen to.","The sunset over the bay was beautiful.","","Latin>French"],
+["knowledge","noun","Information and understanding gained through learning or experience.","Her knowledge of birds amazed the whole class.","","Middle English"],
+["neighbor","noun","A person who lives next to or near another.","Our neighbor waters the plants while we travel.","","Old English"],
+["mystery","noun","Something that is hard to explain or understand.","How the cat got onto the roof remains a mystery.","","Greek>Latin"],
+["celebrate","verb","To do something special to mark a happy occasion.","We celebrate her birthday with a picnic every year.","","Latin"],
+["adventure","noun","An exciting or unusual experience, often with some risk.","Their canoe trip turned into a real adventure.","","Latin>French"],
+["dangerous","adjective","Likely to cause harm or injury.","It is dangerous to swim during a lightning storm.","","Latin>French"],
+["invisible","adjective","Impossible to see.","The glass door was so clean it seemed invisible.","","Latin>French"],
+["chocolate","noun","A sweet food made from roasted cacao seeds.","She stirred melted chocolate into the batter.","","Nahuatl>Spanish"],
+["umbrella","noun","A folding cover on a handle, used for protection from rain.","He forgot his umbrella and got soaked.","","Latin>Italian"],
+["skeleton","noun","The frame of bones that supports a body.","The museum displays the skeleton of a whale.","","Greek"],
+["magazine","noun","A publication with articles and pictures that comes out regularly.","She flipped through a magazine in the waiting room.","","Arabic>Italian>French"],
+["mosquito","noun","A small flying insect that bites and sucks blood.","A mosquito buzzed around my ear all night.","","Latin>Spanish"],
+["scissors","noun","A cutting tool with two blades joined in the middle.","Use the scissors to cut along the dotted line.","","Latin>French"],
+["biscuit","noun","A small, soft bread made with baking powder.","He spread honey on a warm biscuit.","","Latin>French"],
+["raspberry","noun","A small, soft red fruit that grows on a prickly bush.","She dropped a raspberry into her lemonade.","","English"],
+["squirrel","noun","A small rodent with a bushy tail that lives in trees.","A squirrel buried an acorn under the oak.","","Greek>Latin>French"],
+["stomach","noun","The organ in the body where food begins to be digested.","My stomach growled before lunch.","","Greek>Latin>French"],
+["salmon","noun","A large fish with pink flesh that swims upstream to lay eggs.","We grilled salmon over the campfire.","","Latin>French"],
+["absence","noun","The state of being away or not present.","Her absence from practice worried the coach.","","Latin>French"],
+["accident","noun","Something harmful that happens by chance.","He spilled the paint by accident.","","Latin>French"],
+["address","noun","The street, city, and number where a person lives.","Write your address on the envelope.","","Latin>French"],
+["ancient","adjective","Belonging to a time very long ago.","We toured the ruins of an ancient temple.","","Latin>French"],
+["answer","noun","A reply to a question.","She knew the answer before anyone else.","","Old English"],
+["apology","noun","A statement that you are sorry for something.","He owes his sister an apology.","","Greek>Latin"],
+["appetite","noun","A desire for food.","The long hike gave us a big appetite.","","Latin>French"],
+["argument","noun","An angry disagreement, or a reason given to persuade.","The brothers had an argument over the last slice.","","Latin>French"],
+["audience","noun","The group of people watching a show or listening to a speech.","The audience clapped for five minutes.","","Latin>French"],
+["average","adjective","Ordinary or typical; in the middle.","An average house cat sleeps most of the day.","","Arabic>Italian>French"],
+["balance","noun","The ability to stay steady without falling.","She lost her balance on the icy step.","","Latin>French"],
+["bargain","noun","Something bought for less than its usual price.","The used bike was a real bargain.","","French"],
+["beginning","noun","The first part; the start.","I missed the beginning of the movie.","","Old English"],
+["believe","verb","To accept that something is true.","I believe every word she said.","","Old English"],
+["breathe","verb","To take air into the lungs and let it out again.","Fish breathe through their gills.","","Old English"],
+["brilliant","adjective","Very bright, or very smart.","A brilliant light flashed across the sky.","","Italian>French"],
+["business","noun","The work of buying and selling goods or services.","Her parents run a small business downtown.","","Old English"],
+["caution","noun","Care taken to avoid danger or mistakes.","Cross the icy bridge with caution.","","Latin"],
+["century","noun","A period of one hundred years.","The lighthouse has stood for over a century.","","Latin"],
+["challenge","noun","Something difficult that tests your ability.","Climbing the ridge was a real challenge.","","Latin>French"],
+["character","noun","A person in a story, play, or movie.","The main character is a young detective.","","Greek>Latin>French"],
+["citizen","noun","A person who legally belongs to a country.","Every citizen has the right to vote.","","Latin>French"],
+["climate","noun","The usual weather of a place over many years.","The desert has a hot, dry climate.","","Greek>Latin>French"],
+["cocoon","noun","A silky case that a caterpillar spins around itself.","The moth crawled out of its cocoon.","","French"],
+["college","noun","A school of higher learning attended after high school.","My sister leaves for college in August.","","Latin>French"],
+["column","noun","A tall, upright pillar that supports a building.","Each column was carved from white marble.","","Latin"],
+["community","noun","A group of people who live in the same area.","The whole community helped rebuild the park.","","Latin>French"],
+["concert","noun","A musical performance given for an audience.","The band played a free concert in the square.","","Italian>French"],
+["courage","noun","The strength to face danger or fear.","It took courage to speak in front of the school.","","Latin>French"],
+["curious","adjective","Eager to learn or know more.","The curious kitten sniffed every box.","","Latin>French"],
+["decision","noun","A choice made after thinking.","Picking a puppy was a hard decision.","","Latin>French"],
+["delicious","adjective","Very pleasing to taste or smell.","The warm soup was delicious.","","Latin>French"],
+["describe","verb","To tell what something is like.","Can you describe the man you saw?","","Latin"],
+["disappear","verb","To pass out of sight; to vanish.","The magician made the coin disappear.","","Latin>French"],
+["discover","verb","To find or learn something for the first time.","Divers hope to discover the lost ship.","","Latin>French"],
+["disease","noun","An illness that harms a person, animal, or plant.","Doctors work to cure the disease.","","French"],
+["distance","noun","The amount of space between two places.","The distance to the lake is two miles.","","Latin>French"],
+["education","noun","The process of teaching and learning.","A good education opens many doors.","","Latin"],
+["electric","adjective","Powered by or producing a flow of charged energy.","She plays an electric guitar.","","Greek>New Latin"],
+["elephant","noun","A huge gray animal with a long trunk and tusks.","The elephant sprayed water with its trunk.","","Greek>Latin>French"],
+["enormous","adjective","Extremely large.","An enormous wave crashed over the pier.","","Latin"],
+["equipment","noun","The tools or supplies needed for an activity.","We loaded the camping equipment into the van.","","French"],
+["exercise","noun","Physical activity done to stay healthy and strong.","Swimming is excellent exercise.","","Latin>French"],
+["experience","noun","Knowledge or skill gained by doing or living through something.","She has ten years of experience as a pilot.","","Latin>French"],
+["familiar","adjective","Well known or easily recognized.","A familiar voice called my name.","","Latin>French"],
+["fierce","adjective","Wild, violent, or very strong.","A fierce wind bent the trees.","","Latin>French"],
+["fragile","adjective","Easily broken or damaged.","Pack the fragile dishes in soft paper.","","Latin>French"],
+["frequent","adjective","Happening often.","He is a frequent visitor to the library.","","Latin"],
+["furniture","noun","Movable objects such as chairs, tables, and beds.","They bought new furniture for the den.","","French"],
+["generous","adjective","Willing to give and share freely.","A generous neighbor paid for the repairs.","","Latin>French"],
+["genuine","adjective","Real; not fake.","The jeweler said the pearl was genuine.","","Latin"],
+["gigantic","adjective","Huge, like a giant.","A gigantic pumpkin won first prize.","","Greek>Latin"],
+["government","noun","The group of people who rule a country or state.","The government built a new highway.","","Greek>Latin>French"],
+["grammar","noun","The rules for how words are used in a language.","We study grammar in English class.","","Greek>Latin>French"],
+["guitar","noun","A musical instrument with six strings played with the fingers.","He strummed a guitar by the campfire.","","Greek>Spanish"],
+["guardian","noun","A person who protects or takes care of someone.","Her aunt became her legal guardian.","","Germanic>French"],
+["height","noun","How tall something is from bottom to top.","The nurse measured my height.","","Old English"],
+["hospital","noun","A place where sick or injured people are given medical care.","He spent two nights in the hospital.","","Latin>French"],
+["imagine","verb","To form a picture or idea in the mind.","Try to imagine life without electricity.","","Latin>French"],
+["instrument","noun","A device for making music, or a tool for careful work.","The flute is her favorite instrument.","","Latin>French"],
+["language","noun","The words and system people use to speak and write.","Spanish is the first language she learned.","","Latin>French"],
+["laundry","noun","Clothes and linens that need washing or have been washed.","He folded the laundry after dinner.","","Latin>French"],
+["machine","noun","A device with moving parts that does work.","The machine sorts coins by size.","","Greek>Latin>French"],
+["marriage","noun","The legal union of two people as partners.","Their marriage has lasted fifty years.","","Latin>French"],
+["measure","verb","To find the size, length, or amount of something.","Please measure the width of the door.","","Latin>French"],
+["miracle","noun","A wonderful event that seems impossible to explain.","It was a miracle that nobody was hurt.","","Latin>French"],
+["muscle","noun","Body tissue that tightens and relaxes to produce movement.","He pulled a muscle in his leg.","","Latin>French"],
+["ordinary","adjective","Normal or usual; not special.","It began as an ordinary Tuesday.","","Latin"],
+["parachute","noun","A large cloth canopy that slows a fall through the air.","Her parachute opened high above the field.","","French"],
+["passenger","noun","A person riding in a vehicle who is not driving it.","Each passenger showed a ticket.","","Latin>French"],
+["patience","noun","The ability to wait calmly without complaining.","Fishing takes a lot of patience.","","Latin>French"],
+["physical","adjective","Having to do with the body.","Soccer is a very physical sport.","","Greek>Latin"],
+["signature","noun","A person's name written in their own handwriting.","The form needs a parent's signature.","","Latin"],
+["soldier","noun","A person who serves in an army.","The soldier wrote a letter home.","","Latin>French"],
+["strength","noun","The quality of being strong.","It took all my strength to lift the box.","","Old English"],
+["syllable","noun","A word part that is pronounced as a single beat.","The word cat has one syllable.","","Greek>Latin>French"],
+["temperature","noun","A measure of how hot or cold something is.","The temperature dropped below freezing.","","Latin"],
+["tongue","noun","The movable muscle in the mouth used for tasting and speaking.","The soup burned my tongue.","","Old English"],
+["triangle","noun","A flat shape with three straight sides.","She folded the napkin into a triangle.","","Latin>French"]
+],
+[
+["rhythm","noun","A regular, repeated pattern of sounds or movements.","The drummer kept a steady rhythm.","","Greek>Latin>French"],
+["necessary","adjective","Needed; required.","A passport is necessary for travel abroad.","","Latin"],
+["separate","adjective","Not joined or connected; apart.","The twins sleep in separate rooms.","","Latin"],
+["restaurant","noun","A place where meals are prepared and served to customers.","We ate at a small restaurant by the harbor.","","French"],
+["definitely","adverb","Without any doubt; certainly.","I will definitely be there by noon.","","Latin"],
+["embarrass","verb","To cause someone to feel awkward or ashamed.","Please don't embarrass me in front of my friends.","","Portuguese>Spanish>French"],
+["occasion","noun","A special event or a particular time when something happens.","She saved the dress for a special occasion.","","Latin>French"],
+["receive","verb","To get or be given something.","You will receive a reply within a week.","","Latin>French"],
+["guarantee","noun","A promise that something will be done or will work as described.","The toaster comes with a two-year guarantee.","","Germanic>French"],
+["parallel","adjective","Extending in the same direction and always the same distance apart.","The train tracks run parallel to the river.","","Greek>Latin"],
+["recommend","verb","To suggest something as being good or worth trying.","I recommend the soup at that cafe.","","Latin"],
+["schedule","noun","A plan that lists when events or tasks will happen.","The bus schedule changes on weekends.","","Greek>Latin>French"],
+["vacuum","noun","A machine that cleans floors by sucking up dirt; also, a space with nothing in it.","He ran the vacuum over the living room rug.","","Latin"],
+["yacht","noun","A large boat used for pleasure cruising or racing.","The yacht anchored in the bay overnight.","","Dutch"],
+["leisure","noun","Free time when you are not working.","She paints landscapes in her leisure time.","","Latin>French"],
+["foreign","adjective","Coming from or belonging to another country.","He collects foreign coins from his travels.","","Latin>French"],
+["exaggerate","verb","To describe something as larger or greater than it really is.","Fishermen often exaggerate the size of their catch.","","Latin"],
+["cemetery","noun","A place where the dead are buried.","The old cemetery sits on a hill above town.","","Greek>Latin>French"],
+["jewelry","noun","Decorative items such as rings and necklaces worn on the body.","She keeps her jewelry in a wooden box.","","French"],
+["orchestra","noun","A large group of musicians who play together on various instruments.","The orchestra tuned up before the concert.","","Greek>Latin"],
+["bouquet","noun","A bunch of flowers arranged and tied together.","He brought a bouquet of tulips.","","French"],
+["campaign","noun","A planned series of actions to reach a goal, such as winning an election.","Her campaign for mayor began in March.","","Latin>Italian>French"],
+["committee","noun","A group of people chosen to do a particular job.","The committee meets on the first Monday.","","Latin"],
+["receipt","noun","A written record showing that something was paid for.","Keep the receipt in case you return it.","","Latin>French"],
+["abundance","noun","A very large amount; more than enough.","The garden produced an abundance of squash.","","Latin>French"],
+["achieve","verb","To reach a goal through effort.","She worked hard to achieve her dream.","","Latin>French"],
+["acquaintance","noun","A person you know slightly but not well.","He is an acquaintance from my old job.","","Latin>French"],
+["acquire","verb","To get or gain as one's own.","The museum hopes to acquire the painting.","","Latin"],
+["amateur","noun","A person who does something for enjoyment, not for pay.","The race is open to any amateur.","","Latin>French"],
+["anonymous","adjective","Made or given by someone whose name is not known.","An anonymous donor paid for the new roof.","","Greek>Latin"],
+["apparent","adjective","Easy to see or understand; obvious.","Her relief was apparent to everyone.","","Latin>French"],
+["appreciate","verb","To be grateful for; to recognize the value of.","I appreciate your help with the move.","","Latin"],
+["architect","noun","A person who designs buildings.","An architect drew the plans for the library.","","Greek>Latin>French"],
+["atmosphere","noun","The layer of gases that surrounds a planet.","The rocket burned as it entered the atmosphere.","","Greek>New Latin"],
+["bachelor","noun","A man who has never married.","My uncle stayed a bachelor all his life.","","Latin>French"],
+["beneficial","adjective","Producing good results; helpful.","Regular sleep is beneficial to your health.","","Latin"],
+["boundary","noun","A line that marks the edge or limit of something.","A stone wall marks the boundary of the farm.","","Latin>French"],
+["brochure","noun","A thin booklet that gives information or advertises something.","The hotel brochure showed a rooftop pool.","","French"],
+["bulletin","noun","A short public announcement of news.","A weather bulletin interrupted the show.","","Italian>French"],
+["category","noun","A group of things that are alike in some way.","The film won in every category.","","Greek>Latin"],
+["ceremony","noun","A formal event held to mark an important occasion.","The wedding ceremony lasted an hour.","","Latin>French"],
+["chandelier","noun","A fancy light fixture with branches that hangs from a ceiling.","A crystal chandelier lit the ballroom.","","Latin>French"],
+["colleague","noun","A person you work with.","A colleague covered my shift.","","Latin>French"],
+["commitment","noun","A promise or firm decision to do something.","Owning a dog is a long commitment.","","Latin"],
+["competent","adjective","Having the skill needed to do something well.","She is a competent and careful driver.","","Latin>French"],
+["conscience","noun","The inner sense of what is right and wrong.","His conscience would not let him lie.","","Latin>French"],
+["conscious","adjective","Awake and aware of what is happening.","The patient was conscious during the exam.","","Latin"],
+["consensus","noun","General agreement among the members of a group.","The team reached a consensus by lunch.","","Latin"],
+["convenient","adjective","Easy to use or reach; saving time or trouble.","The corner store is convenient for quick trips.","","Latin"],
+["courteous","adjective","Polite and respectful.","The clerk gave a courteous reply.","","French"],
+["curiosity","noun","A strong desire to learn or know.","Curiosity led her to open the old trunk.","","Latin>French"],
+["deceive","verb","To make someone believe something that is not true.","The disguise did not deceive the guard.","","Latin>French"],
+["descend","verb","To move from a higher place to a lower one.","We watched the balloon descend into the valley.","","Latin>French"],
+["desperate","adjective","Having lost almost all hope; willing to try anything.","The desperate hikers lit a signal fire.","","Latin"],
+["dilemma","noun","A situation that requires a hard choice between two options.","She faced a dilemma about which job to take.","","Greek>Latin"],
+["disappoint","verb","To fail to meet the hopes of someone.","I hate to disappoint my grandmother.","","French"],
+["discipline","noun","Training that teaches self-control and order.","Learning the cello takes discipline.","","Latin>French"],
+["efficient","adjective","Working well without wasting time or energy.","The new furnace is far more efficient.","","Latin"],
+["eligible","adjective","Qualified to be chosen or to take part.","Students over sixteen are eligible to apply.","","Latin>French"],
+["emphasize","verb","To give special importance or attention to.","Coaches emphasize teamwork over talent.","","Greek>Latin"],
+["environment","noun","The natural world of land, water, air, and living things.","Recycling helps protect the environment.","","French"],
+["equivalent","adjective","Equal in value, amount, or meaning.","One mile is roughly equivalent to 1.6 kilometers.","","Latin>French"],
+["essential","adjective","Absolutely necessary.","Water is essential for all life.","","Latin"],
+["excellent","adjective","Extremely good.","She gave an excellent speech.","","Latin>French"],
+["exhaust","verb","To tire out completely, or to use up.","Long hikes exhaust the younger scouts.","","Latin"],
+["existence","noun","The state of being real or alive.","Scientists confirmed the existence of the new planet.","","Latin>French"],
+["fascinate","verb","To attract and hold the attention of.","Volcanoes fascinate my little brother.","","Latin"],
+["fatigue","noun","Great tiredness from work or effort.","Fatigue set in after the long drive.","","Latin>French"],
+["forfeit","verb","To lose or give up something as a penalty.","Late teams forfeit the match.","","French"],
+["gauge","noun","An instrument for measuring an amount or level.","The fuel gauge showed an empty tank.","","French"],
+["gorgeous","adjective","Very beautiful.","We had a gorgeous view of the coast.","","French"],
+["gratitude","noun","A feeling of thankfulness.","She wrote a note to express her gratitude.","","Latin>French"],
+["grievance","noun","A complaint about something believed to be unfair.","The workers filed a grievance over pay.","","Latin>French"],
+["harass","verb","To bother or attack again and again.","Crows harass the hawk until it leaves.","","French"],
+["hierarchy","noun","A system that ranks people or things one above another.","A general sits at the top of the army hierarchy.","","Greek>Latin>French"],
+["humorous","adjective","Funny; causing laughter.","He told a humorous story about his dog.","","Latin"],
+["hygiene","noun","Practices that keep the body clean and healthy.","Brushing your teeth is basic hygiene.","","Greek>French"],
+["immediately","adverb","Right away; without delay.","Call me immediately if anything changes.","","Latin"],
+["independent","adjective","Not controlled by or relying on others.","The cat is an independent animal.","","Latin>French"],
+["intelligence","noun","The ability to learn, understand, and solve problems.","Crows are known for their intelligence.","","Latin>French"],
+["interrupt","verb","To break into what someone is saying or doing.","Please do not interrupt the speaker.","","Latin"],
+["irresistible","adjective","Too attractive or tempting to refuse.","The smell of fresh cookies was irresistible.","","Latin"],
+["luxury","noun","Great comfort provided by expensive things.","The hotel offered every luxury.","","Latin>French"],
+["magnificent","adjective","Very grand, beautiful, or impressive.","A magnificent oak shades the courtyard.","","Latin>French"],
+["miniature","adjective","Much smaller than the usual size.","She collects miniature furniture for a dollhouse.","","Latin>Italian"],
+["mortgage","noun","A loan used to buy a house or other property.","They paid off the mortgage in twenty years.","","French"],
+["negotiate","verb","To discuss something in order to reach an agreement.","The two sides will negotiate a new contract.","","Latin"],
+["nuisance","noun","A person or thing that is annoying.","The dripping faucet was a nuisance.","","Latin>French"],
+["obstacle","noun","Something that blocks the way or makes progress hard.","A fallen tree was the first obstacle on the trail.","","Latin>French"],
+["opportunity","noun","A good chance to do something.","The internship was a rare opportunity.","","Latin>French"],
+["pamphlet","noun","A thin booklet with a paper cover.","The clinic handed out a pamphlet on sleep.","","Latin"],
+["peculiar","adjective","Strange or unusual.","A peculiar smell came from the basement.","","Latin"],
+["permanent","adjective","Lasting or meant to last forever.","The marker left a permanent stain.","","Latin>French"],
+["persuade","verb","To convince someone to do or believe something.","She tried to persuade him to stay.","","Latin"],
+["pharmacy","noun","A store where medicines are prepared and sold.","He picked up the prescription at the pharmacy.","","Greek>Latin>French"],
+["phenomenon","noun","A fact or event that can be observed, especially a remarkable one.","The northern lights are a natural phenomenon.","","Greek>Latin"],
+["physician","noun","A medical doctor.","The physician ordered a blood test.","","Greek>Latin>French"],
+["playwright","noun","A person who writes plays.","The playwright took a bow after the show.","","Old English"],
+["possession","noun","Something that a person owns.","The old watch was his prized possession.","","Latin>French"],
+["prejudice","noun","An unfair opinion formed without knowing the facts.","The jury was told to set aside any prejudice.","","Latin>French"]
+],
+[
+["privilege","noun","A special right or advantage given to a person or group.","It was a privilege to meet the author.","PRIV-uh-lij","Latin>French"],
+["mischievous","adjective","Playfully causing minor trouble.","The mischievous puppy hid everyone's socks.","MIS-chuh-vus","French"],
+["occurrence","noun","Something that happens; an event.","A solar eclipse is a rare occurrence.","uh-KUR-unss","Latin"],
+["silhouette","noun","A dark shape or outline seen against a lighter background.","We saw the silhouette of a deer on the ridge.","sil-oo-ET","French"],
+["zucchini","noun","A long green summer squash.","She grated zucchini into the muffin batter.","zoo-KEE-nee","Italian"],
+["lieutenant","noun","A military or police officer ranking below a captain.","The lieutenant led the patrol through the valley.","loo-TEN-unt","French"],
+["colonel","noun","An army officer ranking just below a general.","The colonel inspected the troops at dawn.","KER-nul","Italian>French"],
+["accommodate","verb","To provide room for, or to adapt to the needs of.","The hotel can accommodate two hundred guests.","uh-KAH-muh-dayt","Latin"],
+["questionnaire","noun","A written set of questions used to gather information.","Each visitor filled out a short questionnaire.","kwes-chuh-NAIR","French"],
+["millennium","noun","A period of one thousand years.","The castle has stood for nearly a millennium.","muh-LEN-ee-um","Latin"],
+["entrepreneur","noun","A person who starts and runs a business, taking on the financial risk.","The young entrepreneur opened her first bakery at nineteen.","ahn-truh-pruh-NUR","French"],
+["bureaucracy","noun","A system of government or management with many departments and rules.","The permit was delayed for months by bureaucracy.","byoo-RAH-kruh-see","French"],
+["camouflage","noun","Coloring or covering that helps something blend in with its surroundings.","The moth's wings provide perfect camouflage against bark.","KAM-uh-flahzh","French"],
+["fluorescent","adjective","Giving off bright light when exposed to radiation; vividly bright.","The office was lit by fluorescent tubes.","flor-ES-unt","Latin"],
+["liaison","noun","A person who helps groups communicate and work together.","She serves as the liaison between the school and parents.","lee-AY-zahn","French"],
+["maneuver","noun","A skillful or carefully planned movement.","The pilot performed a tricky maneuver to land safely.","muh-NOO-ver","Latin>French"],
+["pneumonia","noun","A serious infection that inflames the lungs.","He was hospitalized with pneumonia last winter.","noo-MOHN-yuh","Greek"],
+["rendezvous","noun","A meeting arranged for a set time and place.","The hikers planned a rendezvous at the summit.","RAHN-day-voo","French"],
+["sovereign","adjective","Having supreme and independent authority; self-governing.","The treaty recognized the territory as a sovereign nation.","SAHV-rin","Latin>French"],
+["surveillance","noun","Close and continuous watch kept over a person or place.","The bank is under video surveillance at all hours.","ser-VAY-lunss","French"],
+["plagiarism","noun","The act of presenting another person's work as your own.","The essay was rejected for plagiarism.","PLAY-juh-riz-um","Latin"],
+["perseverance","noun","Continued effort in spite of difficulty.","Her perseverance paid off at the finish line.","pur-suh-VEER-unss","Latin>French"],
+["pronunciation","noun","The way in which a word is spoken.","The dictionary gives the pronunciation of each word.","pruh-nun-see-AY-shun","Latin>French"],
+["psychology","noun","The scientific study of the mind and behavior.","He majored in psychology at the university.","sy-KAH-luh-jee","Greek>New Latin"],
+["rehearsal","noun","A practice session before a performance.","The final rehearsal ran past midnight.","rih-HUR-sul","French"],
+["reservoir","noun","A lake, often artificial, where water is stored for use.","The town draws its water from a reservoir.","REZ-er-vwar","French"],
+["sergeant","noun","A military or police officer ranking above a corporal.","The sergeant barked orders at the recruits.","SAR-junt","Latin>French"],
+["souvenir","noun","An object kept as a reminder of a place or event.","She bought a small bell as a souvenir.","soo-vuh-NEER","French"],
+["subtle","adjective","Hard to notice; delicate or faint.","The soup had a subtle hint of ginger.","SUT-ul","Latin>French"],
+["symphony","noun","A long piece of music written for a full orchestra.","The symphony ended with a thunderous finale.","SIM-fuh-nee","Greek>Latin>French"],
+["technique","noun","A particular way of doing something that requires skill.","The potter showed us her glazing technique.","tek-NEEK","Greek>French"],
+["thorough","adjective","Complete and careful in every detail.","The mechanic gave the car a thorough inspection.","THUR-oh","Old English"],
+["tortoise","noun","A slow-moving land reptile with a domed shell.","The tortoise crept across the garden path.","TOR-tus","Latin>French"],
+["tyranny","noun","Cruel and unjust use of power.","The colonists rebelled against tyranny.","TEER-uh-nee","Greek>Latin>French"],
+["unanimous","adjective","Agreed to by everyone.","The vote to adopt the plan was unanimous.","yoo-NAN-uh-mus","Latin"],
+["vengeance","noun","Punishment given in return for a wrong.","The villain swore vengeance on the town.","VEN-junss","Latin>French"],
+["villain","noun","A wicked character in a story or play.","The villain twirled his mustache and laughed.","VIL-un","Latin>French"],
+["abscess","noun","A swollen area of body tissue filled with pus.","The dentist drained the abscess.","AB-ses","Latin"],
+["aesthetic","adjective","Relating to beauty or good taste.","The garden was designed for aesthetic appeal.","es-THET-ik","Greek>German"],
+["aisle","noun","A passage between rows of seats or shelves.","The bride walked slowly down the aisle.","EYE-ul","Latin>French"],
+["allegiance","noun","Loyalty to a country, leader, or cause.","The knights swore allegiance to the queen.","uh-LEE-junss","French"],
+["ambiguous","adjective","Having more than one possible meaning; unclear.","The ambiguous sign confused every driver.","am-BIG-yoo-us","Latin"],
+["apparatus","noun","The equipment needed for a particular task.","The lab was filled with glass apparatus.","ap-uh-RAT-us","Latin"],
+["archaeology","noun","The study of past human life through objects left behind.","She studied archaeology in Egypt.","ar-kee-AH-luh-jee","Greek"],
+["asthma","noun","A condition that makes breathing difficult.","He carries an inhaler for his asthma.","AZ-muh","Greek"],
+["auxiliary","adjective","Giving extra help or support; held in reserve.","The auxiliary generator kicked on during the outage.","awg-ZIL-yuh-ree","Latin"],
+["bankruptcy","noun","The legal state of being unable to pay one's debts.","The airline filed for bankruptcy.","BANK-rupt-see","Italian>French"],
+["benign","adjective","Gentle and harmless; not dangerous to health.","Tests showed the growth was benign.","bih-NYNE","Latin>French"],
+["boulevard","noun","A wide city street, often lined with trees.","Cafes line the boulevard for a mile.","BUL-uh-vard","Dutch>French"],
+["buoyant","adjective","Able to float; cheerful and light.","The raft stayed buoyant in rough water.","BOY-unt","Dutch"],
+["caffeine","noun","A substance in coffee and tea that makes people feel more awake.","She avoids caffeine after noon.","ka-FEEN","German"],
+["catastrophe","noun","A sudden, terrible disaster.","The flood was a catastrophe for the village.","kuh-TAS-truh-fee","Greek"],
+["chauffeur","noun","A person hired to drive a car for someone else.","The chauffeur opened the door for the guests.","shoh-FUR","French"],
+["cinnamon","noun","A sweet brown spice made from tree bark.","He sprinkled cinnamon on the oatmeal.","SIN-uh-mun","Hebrew>Greek>Latin"],
+["coincidence","noun","A surprising event in which two things happen at once by chance.","Meeting her at the airport was pure coincidence.","koh-IN-suh-dunss","Latin"],
+["concierge","noun","A hotel employee who helps guests with arrangements.","The concierge booked our theater tickets.","kawn-SYAIRZH","French"],
+["condescend","verb","To act as though you are better than other people.","Good teachers never condescend to students.","kahn-dih-SEND","Latin>French"],
+["counterfeit","adjective","Made as a fake copy in order to deceive.","The cashier spotted the counterfeit bill.","KOWN-ter-fit","French"],
+["crescent","noun","A curved shape like the moon in its first quarter.","A thin crescent hung over the rooftops.","KRES-unt","Latin>French"],
+["debris","noun","The scattered pieces left after something is destroyed.","Crews cleared debris from the highway.","duh-BREE","French"],
+["deficiency","noun","A lack or shortage of something needed.","A vitamin deficiency made her tired.","dih-FISH-un-see","Latin"],
+["dilapidated","adjective","Falling apart from age or neglect.","A dilapidated barn leaned beside the road.","dih-LAP-uh-day-tid","Latin"],
+["disastrous","adjective","Causing great damage or failure.","The picnic took a disastrous turn when the storm hit.","dih-ZAS-trus","Italian>French"],
+["drought","noun","A long period with little or no rain.","The drought dried up the creek.","DROWT","Old English"],
+["ecstasy","noun","A state of overwhelming joy.","The fans were in ecstasy after the final goal.","EK-stuh-see","Greek>Latin>French"],
+["embezzle","verb","To steal money that has been placed in your care.","The clerk tried to embezzle funds from the charity.","im-BEZ-ul","French"],
+["exhilarate","verb","To make someone feel very happy and excited.","Fast rides exhilarate some people and terrify others.","ig-ZIL-uh-rayt","Latin"],
+["facsimile","noun","An exact copy of a document.","The museum displays a facsimile of the letter.","fak-SIM-uh-lee","Latin"],
+["grandeur","noun","Impressive greatness or splendor.","Visitors marvel at the grandeur of the canyon.","GRAN-jur","French"],
+["guillotine","noun","A machine with a heavy falling blade once used for executions.","The guillotine stood in the public square.","GIL-uh-teen","French"],
+["gymnasium","noun","A large room or building for indoor sports and exercise.","The dance was held in the school gymnasium.","jim-NAY-zee-um","Greek>Latin"],
+["heirloom","noun","A valuable object handed down in a family for generations.","The quilt is a family heirloom.","AIR-loom","Middle English"],
+["hemisphere","noun","One half of the earth or of any sphere.","Australia lies in the southern hemisphere.","HEM-uh-sfeer","Greek>Latin"],
+["hypocrisy","noun","The practice of claiming beliefs that one's actions do not match.","Voters were tired of political hypocrisy.","hih-PAH-kruh-see","Greek>Latin>French"],
+["incandescent","adjective","Glowing with light as a result of being heated.","An incandescent bulb glowed over the porch.","in-kun-DES-unt","Latin"],
+["indict","verb","To formally charge someone with a crime.","The grand jury voted to indict the mayor.","in-DYTE","Latin>French"],
+["inoculate","verb","To protect against a disease by giving a vaccine.","Nurses inoculate hundreds of children each fall.","ih-NAH-kyuh-layt","Latin"],
+["jeopardy","noun","Danger of loss, harm, or failure.","The injury put his season in jeopardy.","JEP-er-dee","French"],
+["khaki","noun","A dull yellowish-brown color, or sturdy cloth of that color.","The scouts wore shirts of khaki.","KAK-ee","Persian>Hindi"],
+["kindergarten","noun","A class for young children that comes before first grade.","My niece starts kindergarten this fall.","KIN-der-gar-tun","German"],
+["laboratory","noun","A room equipped for scientific experiments.","The samples were tested in a laboratory.","LAB-ruh-tor-ee","Latin"],
+["larynx","noun","The part of the throat that holds the vocal cords.","A cold left his larynx swollen.","LAIR-inks","Greek"],
+["limousine","noun","A long, luxurious car with a hired driver.","A white limousine waited outside the chapel.","LIM-uh-zeen","French"],
+["malleable","adjective","Able to be hammered or pressed into shape without breaking.","Gold is a soft and malleable metal.","MAL-ee-uh-bul","Latin>French"],
+["mayonnaise","noun","A thick, creamy dressing made from eggs and oil.","He spread mayonnaise on the bread.","MAY-uh-nayz","French"],
+["mediocre","adjective","Of only ordinary quality; not very good.","The meal was mediocre at best.","mee-dee-OH-ker","Latin>French"],
+["meringue","noun","A light, sweet topping made of beaten egg whites and sugar.","The pie was topped with golden meringue.","muh-RANG","French"],
+["minuscule","adjective","Extremely small.","A minuscule crack ran across the lens.","MIN-uh-skyool","Latin>French"],
+["miscellaneous","adjective","Made up of many different kinds of things.","The drawer held miscellaneous keys and coins.","mis-uh-LAY-nee-us","Latin"],
+["mosaic","noun","A picture made from small pieces of colored stone or glass.","A mosaic of fish decorates the fountain.","moh-ZAY-ik","Greek>Latin>French"],
+["nauseous","adjective","Feeling sick to the stomach.","The winding road made him nauseous.","NAW-shus","Greek>Latin"],
+["obsolete","adjective","No longer in use; out of date.","Floppy disks are now obsolete.","ahb-suh-LEET","Latin"],
+["opaque","adjective","Not letting light pass through.","The bathroom window is made of opaque glass.","oh-PAYK","Latin"],
+["pageant","noun","An elaborate public show or ceremony.","The town staged a historical pageant.","PAJ-unt","Latin"],
+["paradigm","noun","A typical example or model of something.","The discovery shifted the scientific paradigm.","PAIR-uh-dyme","Greek>Latin"],
+["parliament","noun","The group of people who make the laws in some countries.","The bill passed in parliament by ten votes.","PAR-luh-munt","French"],
+["pharaoh","noun","A ruler of ancient Egypt.","The pharaoh was buried with golden treasures.","FAIR-oh","Egyptian>Hebrew>Greek"],
+["picturesque","adjective","Charming or pretty enough to be painted.","We stayed in a picturesque fishing village.","pik-chuh-RESK","Italian>French"],
+["pistachio","noun","A small green nut with a hard tan shell.","She cracked open a pistachio.","pih-STASH-ee-oh","Persian>Greek>Italian"],
+["plateau","noun","A large, flat area of high land.","The ranch sits on a windy plateau.","pla-TOH","French"]
+],
+[
+["conscientious","adjective","Careful to do what is right and to do work thoroughly.","A conscientious editor checks every footnote.","kahn-shee-EN-shus","Latin>French"],
+["connoisseur","noun","An expert judge in matters of taste, such as art or food.","The cheese connoisseur could name each variety by smell.","kah-nuh-SUR","French"],
+["mnemonic","noun","A device, such as a rhyme, that helps a person remember something.","She used a mnemonic to memorize the planets.","nih-MAH-nik","Greek"],
+["paraphernalia","noun","The equipment or articles used in a particular activity.","His garage was full of fishing paraphernalia.","pair-uh-fer-NAYL-yuh","Greek>Latin"],
+["sacrilegious","adjective","Showing disrespect toward something regarded as sacred.","Some fans think putting ketchup on a hot dog is sacrilegious.","sak-ruh-LIJ-us","Latin"],
+["idiosyncrasy","noun","A habit or way of behaving that is peculiar to one person.","Humming while he reads is his best-known idiosyncrasy.","id-ee-oh-SING-kruh-see","Greek"],
+["onomatopoeia","noun","The formation of a word that imitates the sound it names, such as buzz.","The word sizzle is an example of onomatopoeia.","ah-nuh-mah-tuh-PEE-uh","Greek>Latin"],
+["hemorrhage","noun","A heavy discharge of blood from a damaged vessel.","Surgeons worked quickly to stop the hemorrhage.","HEM-rij","Greek>Latin>French"],
+["chrysanthemum","noun","A garden plant with showy, many-petaled flowers that bloom in fall.","A bronze chrysanthemum sat on the porch step.","krih-SAN-thuh-mum","Greek>Latin"],
+["dachshund","noun","A dog of a breed with a long body and very short legs.","The dachshund trotted proudly down the sidewalk.","DAHKS-hunt","German"],
+["facetious","adjective","Joking in a way that is not meant to be taken seriously.","He was being facetious when he asked for a pet dragon.","fuh-SEE-shus","Latin>French"],
+["kaleidoscope","noun","A tube with mirrors and colored bits that shows changing patterns.","Light danced through the kaleidoscope as she turned it.","kuh-LY-duh-skohp","Greek"],
+["mellifluous","adjective","Having a smooth, rich, sweetly flowing sound.","The narrator's mellifluous voice calmed the audience.","muh-LIF-loo-us","Latin"],
+["obsequious","adjective","Too eager to please or obey.","The obsequious waiter refilled our glasses after every sip.","ub-SEE-kwee-us","Latin"],
+["rhododendron","noun","An evergreen shrub with large clusters of bright flowers.","A pink rhododendron bloomed beside the gate.","roh-duh-DEN-drun","Greek>Latin"],
+["ubiquitous","adjective","Seeming to be everywhere at once.","Coffee shops are ubiquitous in this neighborhood.","yoo-BIK-wuh-tus","Latin"],
+["bourgeois","adjective","Relating to the middle class, especially its conventional tastes.","The novelist mocked the bourgeois comforts of the suburbs.","boorzh-WAH","French"],
+["fuchsia","noun","A vivid purplish-red color; also a shrub with drooping flowers.","She painted the door a bold fuchsia.","FYOO-shuh","German>New Latin"],
+["acquiesce","verb","To accept or agree to something quietly, without protest.","The committee chose to acquiesce rather than argue.","ak-wee-ES","Latin>French"],
+["soliloquy","noun","A speech in a play in which a character speaks thoughts aloud while alone.","The actor delivered the soliloquy from the edge of the stage.","suh-LIL-uh-kwee","Latin"],
+["reconnaissance","noun","A survey made to gather information, especially about an enemy.","A drone flew reconnaissance over the ridge.","rih-KAH-nuh-sunss","French"],
+["reminiscent","adjective","Tending to remind one of something else.","The melody is reminiscent of an old lullaby.","rem-uh-NIS-unt","Latin"],
+["renaissance","noun","A rebirth or revival of interest and activity.","The old waterfront is enjoying a renaissance.","REN-uh-sahnss","French"],
+["rhinoceros","noun","A large, thick-skinned animal with one or two horns on its snout.","A rhinoceros charged across the plain.","ry-NAH-suh-rus","Greek>Latin"],
+["rhubarb","noun","A plant with thick, sour red stalks cooked in pies.","Grandpa grows rhubarb beside the shed.","ROO-barb","Greek>Latin>French"],
+["pseudonym","noun","A false name used by an author.","The novelist wrote under a pseudonym.","SOO-duh-nim","Greek>French"],
+["quarantine","noun","A period of isolation to keep a disease from spreading.","The ship was held in quarantine for two weeks.","KWOR-un-teen","Italian"],
+["succinct","adjective","Expressed clearly in few words.","Her answer was succinct and to the point.","suk-SINKT","Latin"],
+["susceptible","adjective","Easily affected or harmed by something.","Young seedlings are susceptible to frost.","suh-SEP-tuh-bul","Latin"],
+["tambourine","noun","A small hand drum with metal disks around the rim.","She shook a tambourine in time with the song.","tam-buh-REEN","French"],
+["vehement","adjective","Showing strong and forceful feeling.","He issued a vehement denial.","VEE-uh-munt","Latin>French"],
+["vinaigrette","noun","A salad dressing made of oil, vinegar, and seasonings.","The greens were tossed in a lemon vinaigrette.","vin-ih-GRET","French"],
+["xylophone","noun","An instrument of wooden bars struck with small mallets.","He tapped out the tune on a xylophone.","ZY-luh-fohn","Greek"],
+["penicillin","noun","An antibiotic first obtained from a mold.","The infection cleared up with penicillin.","pen-uh-SIL-in","New Latin"],
+["porcelain","noun","A hard, white, delicate ceramic.","The tea set is made of fine porcelain.","POR-suh-lin","Italian>French"],
+["precipice","noun","A very steep cliff.","The trail ran along the edge of a precipice.","PRES-uh-pis","Latin>French"],
+["stethoscope","noun","An instrument used to listen to the heart and lungs.","The nurse warmed the stethoscope in her hand.","STETH-uh-skohp","Greek>French"],
+["superintendent","noun","A person who directs or manages an organization or building.","The superintendent closed schools for the storm.","soo-per-in-TEN-dunt","Latin"],
+["anachronism","noun","Something placed in a time period where it does not belong.","A wristwatch in a film about Rome is an anachronism.","uh-NAK-ruh-niz-um","Greek"],
+["anemone","noun","A sea animal that looks like a flower, or a plant with bright blooms.","A clownfish darted into the anemone.","uh-NEM-uh-nee","Greek>Latin"],
+["anesthesia","noun","Loss of feeling produced by drugs before surgery.","The patient woke slowly from anesthesia.","an-us-THEE-zhuh","Greek>New Latin"],
+["apocalypse","noun","A great disaster that brings widespread destruction.","The film imagines life after an apocalypse.","uh-PAH-kuh-lips","Greek>Latin"],
+["apostrophe","noun","A punctuation mark used in contractions and possessives.","The word needs an apostrophe before the final letter.","uh-PAHS-truh-fee","Greek>Latin>French"],
+["arrhythmia","noun","An irregular heartbeat.","The monitor detected an arrhythmia.","ay-RITH-mee-uh","Greek"],
+["asphyxiate","verb","To kill or make unconscious by cutting off air.","Smoke can asphyxiate a person within minutes.","as-FIK-see-ayt","Greek"],
+["bivouac","noun","A temporary camp with little or no shelter.","The climbers made a bivouac on the ledge.","BIV-wak","German>French"],
+["bourgeoisie","noun","The middle class of a society.","The novel pokes fun at the bourgeoisie.","boorzh-wah-ZEE","French"],
+["braggadocio","noun","Empty boasting; swagger.","His braggadocio vanished when the match began.","brag-uh-DOH-shee-oh","English"],
+["cacophony","noun","A harsh, jarring mixture of sounds.","A cacophony of car horns filled the street.","ka-KAH-fuh-nee","Greek>French"],
+["camaraderie","noun","A feeling of friendship and trust among a group.","The camaraderie on the team was obvious.","kahm-RAH-duh-ree","French"],
+["capricious","adjective","Changing suddenly and unpredictably.","The capricious weather ruined our plans twice.","kuh-PRISH-us","Italian>French"],
+["chameleon","noun","A lizard that can change the color of its skin.","The chameleon turned green on the leaf.","kuh-MEEL-yun","Greek>Latin"],
+["charlatan","noun","A person who falsely claims special knowledge or skill.","The healer turned out to be a charlatan.","SHAR-luh-tun","Italian>French"],
+["clairvoyant","noun","A person who claims to see the future.","A clairvoyant read fortunes at the fair.","klair-VOY-unt","French"],
+["colloquial","adjective","Used in ordinary, informal conversation.","The letter was written in a colloquial style.","kuh-LOH-kwee-ul","Latin"],
+["commemorate","verb","To honor the memory of a person or event.","Statues commemorate the town's founders.","kuh-MEM-uh-rayt","Latin"],
+["convalesce","verb","To recover health gradually after an illness.","She went to the coast to convalesce.","kahn-vuh-LES","Latin"],
+["cornucopia","noun","A horn overflowing with fruit and grain; a great abundance.","A cornucopia sat in the center of the table.","kor-nuh-KOH-pee-uh","Latin"],
+["crustacean","noun","A hard-shelled water animal such as a crab or lobster.","A shrimp is a small crustacean.","krus-TAY-shun","Latin"],
+["deleterious","adjective","Harmful, often in a way that is not obvious.","Smoking has deleterious effects on the lungs.","del-uh-TEER-ee-us","Greek>Latin"],
+["diaphragm","noun","The sheet of muscle below the lungs that controls breathing.","Singers learn to breathe from the diaphragm.","DY-uh-fram","Greek>Latin"],
+["dichotomy","noun","A division into two sharply contrasting parts.","The book explores the dichotomy between duty and desire.","dy-KAH-tuh-mee","Greek"],
+["diphtheria","noun","A serious bacterial disease of the throat.","Vaccines have made diphtheria rare.","dif-THEER-ee-uh","Greek>French"],
+["effervescent","adjective","Bubbly and fizzy; lively and cheerful.","She dropped an effervescent tablet into the glass.","ef-er-VES-unt","Latin"],
+["egregious","adjective","Outstandingly bad; shocking.","The report contained an egregious error.","ih-GREE-jus","Latin"],
+["entourage","noun","A group of attendants who travel with an important person.","The singer arrived with a large entourage.","ahn-too-RAHZH","French"],
+["ephemeral","adjective","Lasting for only a short time.","Cherry blossoms are beautiful but ephemeral.","ih-FEM-er-ul","Greek"],
+["epitome","noun","A perfect example of a quality or type.","He was the epitome of good manners.","ih-PIT-uh-mee","Greek>Latin"],
+["equilibrium","noun","A state of balance between opposing forces.","The scale settled into equilibrium.","ee-kwuh-LIB-ree-um","Latin"],
+["euphemism","noun","A mild word used in place of a harsh or blunt one.","Passed away is a euphemism for died.","YOO-fuh-miz-um","Greek"],
+["exacerbate","verb","To make a bad situation worse.","Cold air can exacerbate a cough.","ig-ZAS-er-bayt","Latin"],
+["fastidious","adjective","Very attentive to detail; hard to please.","He is fastidious about keeping his desk neat.","fa-STID-ee-us","Latin"],
+["gregarious","adjective","Fond of the company of others; sociable.","Her gregarious uncle talks to everyone.","grih-GAIR-ee-us","Latin"],
+["harbinger","noun","A sign that something is about to happen.","The first robin is a harbinger of spring.","HAR-bin-jer","Germanic>French"],
+["hieroglyphic","noun","A picture or symbol used in ancient Egyptian writing.","Each hieroglyphic was carved into the stone.","hy-ruh-GLIF-ik","Greek>Latin>French"],
+["hippopotamus","noun","A huge African animal that spends much of its time in rivers.","A hippopotamus yawned in the muddy water.","hip-uh-PAH-tuh-mus","Greek>Latin"],
+["hydrangea","noun","A shrub with large round clusters of blue, pink, or white flowers.","A blue hydrangea bloomed by the steps.","hy-DRAYN-juh","Greek>New Latin"],
+["hyperbole","noun","Exaggeration used for effect.","Saying he was starving was pure hyperbole.","hy-PUR-buh-lee","Greek>Latin"],
+["impeccable","adjective","Without a single flaw.","Her manners were impeccable.","im-PEK-uh-bul","Latin"],
+["impromptu","adjective","Done without preparation.","He gave an impromptu speech at the party.","im-PRAHMP-too","Latin>French"],
+["iridescent","adjective","Showing shifting rainbow colors.","An iridescent beetle crawled over the leaf.","eer-uh-DES-unt","Greek>Latin"],
+["juxtaposition","noun","The placing of two things side by side for contrast.","The juxtaposition of old and new buildings is striking.","juk-stuh-puh-ZISH-un","Latin>French"],
+["labyrinth","noun","A confusing network of winding passages; a maze.","The old city is a labyrinth of alleys.","LAB-uh-rinth","Greek>Latin"],
+["lackadaisical","adjective","Lacking energy or enthusiasm.","The team gave a lackadaisical effort.","lak-uh-DAY-zih-kul","English"],
+["lugubrious","adjective","Looking or sounding very sad and gloomy.","The hound gave a lugubrious howl.","loo-GOO-bree-us","Latin"],
+["magnanimous","adjective","Generous and forgiving, especially toward a rival.","The champion was magnanimous in victory.","mag-NAN-uh-mus","Latin"],
+["masquerade","noun","A party at which guests wear masks and costumes.","They met at a masquerade on New Year's Eve.","mas-kuh-RAYD","Italian>French"],
+["metamorphosis","noun","A complete change of form, as from caterpillar to butterfly.","The tadpole began its metamorphosis into a frog.","met-uh-MOR-fuh-sis","Greek>Latin"],
+["nomenclature","noun","A system of names used in a science or art.","Botanists follow a strict nomenclature.","NOH-mun-klay-chur","Latin"],
+["nonchalant","adjective","Calm and casually unconcerned.","She gave a nonchalant shrug.","nahn-shuh-LAHNT","French"],
+["omniscient","adjective","Knowing everything.","The story is told by an omniscient narrator.","ahm-NISH-unt","Latin"],
+["ophthalmologist","noun","A doctor who treats diseases of the eye.","The ophthalmologist checked for cataracts.","ahf-thuh-MAH-luh-jist","Greek"],
+["ostentatious","adjective","Showy in a way meant to impress others.","He drove an ostentatious gold car.","ahs-ten-TAY-shus","Latin"],
+["pandemonium","noun","Wild uproar and confusion.","Pandemonium broke out when the fire alarm rang.","pan-duh-MOH-nee-um","Greek>New Latin"],
+["phlegm","noun","Thick mucus produced in the throat and lungs.","The syrup helps loosen phlegm.","FLEM","Greek>Latin>French"],
+["plethora","noun","An amount much greater than is needed.","The store offers a plethora of choices.","PLETH-er-uh","Greek>Latin"],
+["poinsettia","noun","A plant with large red leaves that is popular in winter.","A poinsettia sat on the mantel.","poyn-SET-ee-uh","New Latin"],
+["precocious","adjective","Showing unusually early development or ability.","The precocious child read novels at five.","prih-KOH-shus","Latin"],
+["quintessential","adjective","Being the most perfect example of something.","Apple pie is the quintessential fall dessert.","kwin-tuh-SEN-shul","Latin>French"],
+["serendipity","noun","The luck of finding good things by accident.","They met by pure serendipity on a train.","sair-un-DIP-uh-tee","English"]
+],
+[
+["pusillanimous","adjective","Lacking courage; timid.","The pusillanimous knight hid behind his horse.","pyoo-suh-LAN-uh-mus","Latin"],
+["synecdoche","noun","A figure of speech in which a part stands for the whole.","Calling a car your wheels is a synecdoche.","sih-NEK-duh-kee","Greek>Latin"],
+["verisimilitude","noun","The quality of appearing to be true or real.","Period costumes gave the film verisimilitude.","vair-uh-suh-MIL-uh-tood","Latin"],
+["ptarmigan","noun","A grouse of cold regions whose feathers turn white in winter.","A ptarmigan stood motionless against the snow.","TAR-mih-gun","Scottish Gaelic"],
+["sarsaparilla","noun","A sweet soft drink flavored with a root extract.","He ordered a cold sarsaparilla at the counter.","sas-puh-RIL-uh","Spanish"],
+["desiccate","verb","To dry out completely.","Desert winds desiccate anything left in the open.","DES-ih-kayt","Latin"],
+["vicissitude","noun","A change of circumstances or fortune, typically an unwelcome one.","Each vicissitude of the market tested her patience.","vuh-SIS-uh-tood","Latin>French"],
+["baccalaureate","noun","A bachelor's degree, or a service held for a graduating class.","She earned her baccalaureate in chemistry.","bak-uh-LOR-ee-ut","Latin"],
+["zeitgeist","noun","The general spirit or mood of a particular period of history.","The song captured the zeitgeist of the decade.","TSYT-gyst","German"],
+["chiaroscuro","noun","The use of strong contrast between light and dark in art.","The painter used chiaroscuro to make the face glow.","kee-ar-uh-SKYOOR-oh","Italian"],
+["bouillabaisse","noun","A seafood stew from the south of France.","The chef simmered the bouillabaisse with saffron.","boo-yuh-BAYS","French"],
+["sesquipedalian","adjective","Given to using long words; of a word, having many syllables.","His sesquipedalian style sent readers to the dictionary.","ses-kwuh-puh-DAYL-yun","Latin"],
+["schadenfreude","noun","Pleasure felt at someone else's misfortune.","She felt a flash of schadenfreude when her rival tripped.","SHAH-dun-froy-duh","German"],
+["tintinnabulation","noun","The ringing or tinkling sound of bells.","The tintinnabulation of sleigh bells filled the square.","tin-tuh-nab-yuh-LAY-shun","Latin"],
+["perspicacious","adjective","Having keen insight and understanding.","A perspicacious reader spots the clue in chapter one.","pur-spuh-KAY-shus","Latin"],
+["obstreperous","adjective","Noisy and difficult to control.","The obstreperous crowd drowned out the speaker.","ub-STREP-er-us","Latin"],
+["logorrhea","noun","Excessive and often incoherent talkativeness.","His logorrhea turned a short toast into an hour.","law-guh-REE-uh","Greek>New Latin"],
+["legerdemain","noun","Skillful use of the hands in performing tricks; sleight of hand.","The magician's legerdemain made the coin vanish.","lej-er-duh-MAYN","French"],
+["diphthong","noun","A sound formed by gliding from one vowel to another in a single syllable.","The vowel sound in the word coin is a diphthong.","DIF-thong","Greek>Latin>French"],
+["syzygy","noun","The alignment of three celestial bodies, such as the sun, earth, and moon.","An eclipse occurs during a syzygy.","SIZ-uh-jee","Greek>Latin"],
+["amanuensis","noun","A person employed to take dictation or copy manuscripts.","The blind poet dictated each verse to an amanuensis.","uh-man-yoo-EN-sis","Latin"],
+["cynosure","noun","A person or thing that is the center of attention.","The bride was the cynosure of every eye.","SY-nuh-shoor","Greek>Latin>French"],
+["surreptitious","adjective","Done in a secret or stealthy way.","He took a surreptitious glance at his phone.","sur-up-TISH-us","Latin"],
+["sycophant","noun","A person who flatters the powerful to gain favor.","The king was surrounded by a sycophant or two.","SIK-uh-funt","Greek>Latin"],
+["recalcitrant","adjective","Stubbornly refusing to obey.","The recalcitrant mule would not budge.","rih-KAL-suh-trunt","Latin"],
+["quixotic","adjective","Idealistic to a foolish or impractical degree.","He set off on a quixotic quest to bike across the ocean floor.","kwik-SAH-tik","Spanish"],
+["perfunctory","adjective","Done routinely and with little interest or care.","The guard gave our bags a perfunctory glance.","per-FUNK-tuh-ree","Latin"],
+["pernicious","adjective","Causing great harm, often gradually.","Rumors can have a pernicious effect on trust.","per-NISH-us","Latin"],
+["parsimonious","adjective","Extremely unwilling to spend money.","The parsimonious landlord refused to fix the heater.","par-suh-MOH-nee-us","Latin"],
+["obfuscate","verb","To make something unclear or hard to understand.","Long legal terms obfuscate the simple facts.","AHB-fuh-skayt","Latin"],
+["misanthrope","noun","A person who dislikes and avoids other people.","The old misanthrope lived alone on the hill.","MIS-un-throhp","Greek"],
+["insouciant","adjective","Cheerfully unconcerned; carefree.","She answered with an insouciant wave.","in-SOO-see-unt","French"],
+["iconoclast","noun","A person who attacks cherished beliefs or traditions.","The young architect was an iconoclast.","eye-KAH-nuh-klast","Greek>Latin"],
+["gubernatorial","adjective","Relating to a governor.","She announced her gubernatorial campaign in June.","goo-ber-nuh-TOR-ee-ul","Latin"],
+["extemporaneous","adjective","Spoken or done without preparation.","He delivered an extemporaneous toast.","ek-stem-puh-RAY-nee-us","Latin"],
+["abstemious","adjective","Sparing in eating and drinking.","The monk kept an abstemious diet.","ab-STEE-mee-us","Latin"],
+["vermilion","noun","A brilliant red pigment or color.","The temple gates were painted vermilion.","ver-MIL-yun","Latin>French"],
+["ventriloquist","noun","A performer who speaks without moving the lips so a dummy seems to talk.","The ventriloquist made the puppet sing.","ven-TRIL-uh-kwist","Latin"],
+["vacillate","verb","To waver between different opinions or actions.","Voters vacillate until the final week.","VAS-uh-layt","Latin"],
+["sarcophagus","noun","A stone coffin, often carved or inscribed.","The mummy lay inside a painted sarcophagus.","sar-KAH-fuh-gus","Greek>Latin"],
+["pizzicato","adverb","By plucking the strings of an instrument instead of bowing.","The violins played the passage pizzicato.","pit-sih-KAH-toh","Italian"],
+["prerogative","noun","A special right or privilege belonging to a person or office.","Choosing the menu is the host's prerogative.","prih-RAH-guh-tiv","Latin>French"],
+["sanctimonious","adjective","Pretending to be morally better than others.","His sanctimonious lecture annoyed the staff.","sank-tuh-MOH-nee-us","Latin"],
+["apocryphal","adjective","Widely told but probably not true.","The tale of the haunted bridge is apocryphal.","uh-PAH-kruh-ful","Greek>Latin"],
+["apotheosis","noun","The highest point of development; elevation to divine status.","The concert was the apotheosis of her career.","uh-pah-thee-OH-sis","Greek>Latin"],
+["archipelago","noun","A group or chain of islands.","The ferry links every island in the archipelago.","ar-kuh-PEL-uh-goh","Greek>Italian"],
+["avuncular","adjective","Kind and friendly in the manner of an uncle.","The coach gave him an avuncular pat on the back.","uh-VUNK-yuh-ler","Latin"],
+["bildungsroman","noun","A novel about a young person's growth into adulthood.","The book is a classic bildungsroman.","BIL-doongz-roh-mahn","German"],
+["blitzkrieg","noun","A swift, intense military attack meant to win quickly.","The army launched a blitzkrieg across the border.","BLITS-kreeg","German"],
+["brouhaha","noun","A noisy and overexcited reaction; an uproar.","The new parking rule caused a brouhaha.","BROO-hah-hah","French"],
+["cantankerous","adjective","Bad-tempered and argumentative.","A cantankerous goose guarded the gate.","kan-TANK-er-us","English"],
+["chicanery","noun","The use of clever tricks to deceive.","The deal was won by legal chicanery.","shih-KAY-nuh-ree","French"],
+["chrysalis","noun","The hard case in which a caterpillar becomes a butterfly.","A green chrysalis hung from the twig.","KRIS-uh-lis","Greek>Latin"],
+["concatenate","verb","To link together in a series or chain.","The program can concatenate several files into one.","kahn-KAT-uh-nayt","Latin"],
+["consanguinity","noun","Relationship by descent from the same ancestor.","The court examined their degree of consanguinity.","kahn-san-GWIN-uh-tee","Latin"],
+["crepuscular","adjective","Relating to or active during twilight.","Deer are crepuscular animals.","krih-PUS-kyuh-ler","Latin"],
+["daguerreotype","noun","An early photograph made on a silvered plate.","A faded daguerreotype showed her great-great-grandmother.","duh-GAIR-uh-type","French"],
+["defenestration","noun","The act of throwing someone or something out of a window.","The riot began with a famous defenestration.","dee-fen-uh-STRAY-shun","Latin"],
+["demagogue","noun","A leader who gains power by stirring up emotions and prejudice.","The demagogue promised easy answers to the crowd.","DEM-uh-gahg","Greek"],
+["denouement","noun","The final part of a story, in which matters are resolved.","The mystery's denouement surprised everyone.","day-noo-MAHN","French"],
+["dilettante","noun","A person with a shallow, casual interest in an art or subject.","He was a dilettante who never finished a painting.","DIL-uh-tahnt","Italian"],
+["doppelganger","noun","A ghostly double or look-alike of a living person.","She met her doppelganger on the subway.","DAH-pul-gang-er","German"],
+["ebullient","adjective","Overflowing with enthusiasm and excitement.","The ebullient host greeted every guest with a hug.","ih-BUL-yunt","Latin"],
+["eczema","noun","A condition that makes patches of skin red and itchy.","The cream soothed his eczema.","EK-suh-muh","Greek>New Latin"],
+["ennui","noun","A feeling of weary boredom.","Endless rain filled the campers with ennui.","ahn-WEE","French"],
+["ersatz","adjective","Made as an inferior substitute for something else.","They drank ersatz coffee made from acorns.","AIR-zahts","German"],
+["eucalyptus","noun","A tall Australian tree with fragrant leaves.","Koalas feed on eucalyptus.","yoo-kuh-LIP-tus","Greek>New Latin"],
+["flibbertigibbet","noun","A silly, flighty, overly talkative person.","The flibbertigibbet forgot the tickets again.","FLIB-er-tee-jib-it","English"],
+["fricassee","noun","A dish of meat cut up, stewed, and served in a white sauce.","She served a chicken fricassee over rice.","FRIK-uh-see","French"],
+["gesundheit","noun","A word said to wish good health to someone who has sneezed.","He sneezed, and the whole class said gesundheit.","guh-ZOONT-hyte","German"],
+["glockenspiel","noun","An instrument of tuned metal bars struck with small hammers.","The glockenspiel rang out above the band.","GLAH-kun-shpeel","German"],
+["gnocchi","noun","Small dumplings made from potato or flour.","We ordered gnocchi in a butter sauce.","NYOH-kee","Italian"],
+["guerrilla","noun","A member of a small independent group that fights by surprise raids.","A guerrilla slipped across the border at night.","guh-RIL-uh","Spanish"],
+["haberdashery","noun","A shop that sells men's clothing and accessories.","He bought the hat at a haberdashery.","HAB-er-dash-uh-ree","French"],
+["halcyon","adjective","Calm, peaceful, and happy.","She remembers the halcyon summers of her youth.","HAL-see-un","Greek>Latin"],
+["harangue","noun","A long, forceful, scolding speech.","The coach delivered a harangue at halftime.","huh-RANG","Italian>French"],
+["hegemony","noun","Dominance of one country or group over others.","The empire kept its hegemony for a century.","hih-JEM-uh-nee","Greek"],
+["ignominious","adjective","Deserving or causing public disgrace.","The team suffered an ignominious defeat.","ig-nuh-MIN-ee-us","Latin"],
+["impecunious","adjective","Having little or no money.","The impecunious student lived on noodles.","im-pih-KYOO-nee-us","Latin"],
+["inchoate","adjective","Just begun and not yet fully formed.","She jotted down her inchoate ideas.","in-KOH-ut","Latin"],
+["isthmus","noun","A narrow strip of land connecting two larger areas of land.","The canal cuts across the isthmus.","IS-mus","Greek>Latin"],
+["jodhpurs","noun","Riding pants that are loose above the knee and tight below.","She pulled on her boots over her jodhpurs.","JAHD-purz","Hindi"],
+["juggernaut","noun","A huge, powerful force that crushes everything in its way.","The team became a juggernaut in the playoffs.","JUG-er-nawt","Sanskrit>Hindi"],
+["kohlrabi","noun","A cabbage with a swollen, turnip-shaped stem that is eaten.","She sliced raw kohlrabi into the salad.","kohl-RAH-bee","Italian>German"],
+["lachrymose","adjective","Tearful or inclined to weep.","The film's lachrymose ending left the crowd sniffling.","LAK-ruh-mohs","Latin"],
+["lagniappe","noun","A small gift given to a customer with a purchase.","The baker tossed in a cookie as lagniappe.","LAN-yap","Quechua>Spanish>French"],
+["leitmotif","noun","A recurring theme in a piece of music or a story.","The storm is a leitmotif throughout the novel.","LYTE-moh-teef","German"],
+["loquacious","adjective","Very talkative.","Our loquacious guide never paused for breath.","loh-KWAY-shus","Latin"],
+["macabre","adjective","Disturbing because of a connection with death.","The museum has a macabre display of old surgical tools.","muh-KAHB","French"],
+["maelstrom","noun","A powerful whirlpool, or a state of violent confusion.","The small boat was pulled toward the maelstrom.","MAYL-strum","Dutch"],
+["mulligatawny","noun","A spicy soup flavored with curry.","A bowl of mulligatawny warmed us up.","mul-ih-guh-TAW-nee","Tamil"],
+["myrrh","noun","A fragrant gum resin used in perfume and incense.","The traders carried myrrh across the desert.","MUR","Greek>Latin"],
+["obeisance","noun","A bow or other gesture showing deep respect.","The courtiers made obeisance to the queen.","oh-BEE-sunss","French"],
+["panacea","noun","A remedy claimed to cure all problems.","Exercise is helpful but it is no panacea.","pan-uh-SEE-uh","Greek>Latin"],
+["paroxysm","noun","A sudden, violent outburst of emotion or activity.","The joke sent her into a paroxysm of laughter.","PAIR-uk-siz-um","Greek>Latin>French"],
+["peripatetic","adjective","Traveling from place to place.","The peripatetic teacher worked in six countries.","pair-uh-puh-TET-ik","Greek>Latin"],
+["prestidigitation","noun","The performance of magic tricks with quick hand movements.","The card trick was a feat of prestidigitation.","pres-tuh-dij-uh-TAY-shun","French"],
+["pulchritude","noun","Physical beauty.","The poem praises the pulchritude of the countryside.","PUL-kruh-tood","Latin"],
+["rapprochement","noun","The return of friendly relations between two sides.","The two nations sought a rapprochement.","ra-prohsh-MAHN","French"],
+["triskaidekaphobia","noun","Fear of the number thirteen.","The hotel skips a floor number out of triskaidekaphobia.","tris-ky-dek-uh-FOH-bee-uh","Greek"]
+],
+[
+["eleemosynary","adjective","Relating to or supported by charity.","The hospital began as an eleemosynary institution.","el-uh-MAHS-uh-nair-ee","Greek>Latin"],
+["borborygmus","noun","A rumbling sound made by gas moving through the intestines.","A loud borborygmus interrupted the silent exam.","bor-buh-RIG-mus","Greek"],
+["weltschmerz","noun","A feeling of sadness about the state of the world.","The poet's weltschmerz colors every stanza.","VELT-shmairts","German"],
+["autochthonous","adjective","Native to the place where it is found; indigenous.","The valley's autochthonous plants survive on little rain.","aw-TAHK-thuh-nus","Greek"],
+["appoggiatura","noun","An ornamental note that leans on the main note that follows it.","The singer added an appoggiatura before the final note.","uh-pah-juh-TOOR-uh","Italian"],
+["cymotrichous","adjective","Having wavy hair.","The portrait shows a cymotrichous child by the sea.","sy-MAH-truh-kus","Greek"],
+["stichomythia","noun","Dialogue in drama delivered in rapidly alternating single lines.","The quarrel scene is written in stichomythia.","stik-uh-MITH-ee-uh","Greek"],
+["feuilleton","noun","A part of a European newspaper devoted to light literature and criticism.","Her essay first appeared in the paper's feuilleton.","fuh-yuh-TOHN","French"],
+["scherenschnitte","noun","The art of cutting paper into decorative designs.","A framed scherenschnitte of two deer hung in the hall.","SHAIR-un-shnit-uh","German"],
+["gesellschaft","noun","A society held together by impersonal, practical ties rather than close community.","The sociologist described the modern city as a gesellschaft.","guh-ZEL-shahft","German"],
+["koinonia","noun","Close fellowship within a community, especially a Christian one.","The congregation was known for its spirit of koinonia.","koy-nuh-NEE-uh","Greek"],
+["psammophile","noun","An organism that thrives in sand or sandy soil.","The dune beetle is a true psammophile.","SAM-uh-fyl","Greek"],
+["bougainvillea","noun","A tropical climbing plant with bright, papery bracts.","Magenta bougainvillea spilled over the courtyard wall.","boo-gun-VIL-yuh","French>New Latin"],
+["erysipelas","noun","An acute bacterial infection that causes red, swollen patches of skin.","The physician diagnosed erysipelas from the sharp-edged rash.","air-uh-SIP-uh-lus","Greek>Latin"],
+["pococurante","adjective","Indifferent; nonchalant.","His pococurante shrug annoyed the committee.","poh-koh-kyoo-RAN-tee","Italian"],
+["succedaneum","noun","A substitute, especially a drug used in place of another.","Chicory served as a succedaneum for coffee.","suk-suh-DAY-nee-um","Latin"],
+["chiaroscurist","noun","An artist who works in contrasts of light and shade.","The chiaroscurist lit the scene with a single candle.","kee-ar-uh-SKYOOR-ist","Italian"],
+["vivisepulture","noun","The act of burying someone alive.","The gothic tale ends with a scene of vivisepulture.","viv-ih-SEP-ul-chur","Latin"],
+["antediluvian","adjective","Extremely old or old-fashioned; literally, from before the biblical flood.","The office still runs on an antediluvian computer.","an-tih-duh-LOO-vee-un","Latin"],
+["prospicience","noun","The act of looking forward; foresight.","Her prospicience spared the town from the flood.","proh-SPISH-unss","Latin"],
+["vichyssoise","noun","A thick soup of leeks and potatoes, usually served cold.","The meal began with a bowl of chilled vichyssoise.","vish-ee-SWAHZ","French"],
+["terpsichorean","adjective","Relating to dancing.","The festival celebrates the terpsichorean arts.","turp-sih-kuh-REE-un","Greek"],
+["tchotchke","noun","A small decorative object; a trinket.","Every shelf held a tchotchke from her travels.","CHAHCH-kuh","Yiddish"],
+["sobriquet","noun","A nickname.","The boxer earned the sobriquet Iron Hand.","SOH-brih-kay","French"],
+["somnambulist","noun","A person who walks while asleep.","The somnambulist was found in the garden at dawn.","sahm-NAM-byuh-list","Latin"],
+["persiflage","noun","Light, teasing talk; banter.","The dinner passed in easy persiflage.","PUR-sih-flahzh","French"],
+["nonpareil","adjective","Having no equal.","She is a pianist of nonpareil skill.","nahn-puh-REL","French"],
+["sangfroid","noun","Calmness and composure under pressure.","The pilot landed the damaged plane with sangfroid.","sahn-FRWAH","French"],
+["abecedarian","noun","A person who is learning the alphabet; a beginner.","Each abecedarian traced letters in the sand.","ay-bee-see-DAIR-ee-un","Latin"],
+["absquatulate","verb","To leave in a hurry; to make off.","The thieves chose to absquatulate before dawn.","ab-SKWAH-chuh-layt","American English"],
+["acciaccatura","noun","A very short grace note played just before a main note.","The pianist added a crisp acciaccatura.","ah-chah-kuh-TOOR-uh","Italian"],
+["ailurophile","noun","A person who loves cats.","The ailurophile adopted three more kittens.","eye-LOOR-uh-fyl","Greek"],
+["antimacassar","noun","A small cover placed on the back or arms of a chair to protect it.","A lace antimacassar lay over the armchair.","an-tih-muh-KAS-er","English"],
+["aposiopesis","noun","A sudden breaking off in the middle of a sentence.","Her threat trailed into aposiopesis.","ap-uh-sy-uh-PEE-sis","Greek>Latin"],
+["balalaika","noun","A stringed instrument with a triangular body.","He played a folk tune on the balalaika.","bal-uh-LY-kuh","Russian"],
+["bathysphere","noun","A strong round chamber lowered by cable to explore the deep sea.","The bathysphere sank into the dark water.","BATH-ih-sfeer","Greek"],
+["boustrophedon","noun","Writing in which lines run alternately right to left and left to right.","The ancient inscription was carved in boustrophedon.","boo-struh-FEE-dun","Greek"],
+["callipygian","adjective","Having well-shaped buttocks.","The museum guide blushed while describing the callipygian statue.","kal-uh-PIJ-ee-un","Greek"],
+["campanile","noun","A bell tower, especially one standing apart from a church.","The campanile rises above the piazza.","kam-puh-NEE-lee","Italian"],
+["cacoethes","noun","An uncontrollable urge to do something unwise.","He had a cacoethes for arguing with strangers.","kak-oh-EE-theez","Greek>Latin"],
+["caryatid","noun","A carved female figure used as a supporting column.","Each caryatid holds up a corner of the porch.","kair-ee-AT-id","Greek>Latin"],
+["catachresis","noun","The use of a word in a way that is not correct; a strained figure of speech.","Calling a table's support a leg began as catachresis.","kat-uh-KREE-sis","Greek>Latin"],
+["cenotaph","noun","A monument honoring a person whose remains lie elsewhere.","Wreaths were laid at the cenotaph.","SEN-uh-taf","Greek>Latin>French"],
+["chthonic","adjective","Relating to the underworld.","The myth describes a chthonic river of forgetting.","THAH-nik","Greek"],
+["clerihew","noun","A humorous four-line rhyming verse about a famous person.","She wrote a clerihew about the mayor.","KLAIR-ih-hyoo","English"],
+["coelacanth","noun","A large, ancient fish once thought to be extinct.","Fishermen hauled up a living coelacanth.","SEE-luh-kanth","Greek>New Latin"],
+["croquembouche","noun","A tall cone of cream puffs held together with caramel.","The wedding dessert was a towering croquembouche.","kroh-kum-BOOSH","French"],
+["cuneiform","noun","The wedge-shaped writing of ancient Mesopotamia.","The clay tablet was covered in cuneiform.","kyoo-NEE-uh-form","Latin"],
+["diaphanous","adjective","So thin and light as to be almost transparent.","A diaphanous curtain drifted in the breeze.","dy-AF-uh-nus","Greek>Latin"],
+["dodecahedron","noun","A solid figure with twelve flat faces.","The game uses a die shaped like a dodecahedron.","doh-dek-uh-HEE-drun","Greek"],
+["ecchymosis","noun","A bruise caused by bleeding under the skin.","The nurse noted an ecchymosis on his forearm.","ek-ih-MOH-sis","Greek>New Latin"],
+["eidetic","adjective","Relating to mental images that are unusually vivid and detailed.","He recalled the page with eidetic precision.","eye-DET-ik","Greek>German"],
+["eudaemonic","adjective","Producing happiness and well-being.","She described gardening as a eudaemonic habit.","yoo-dee-MAH-nik","Greek"],
+["fanfaronade","noun","Empty, arrogant boasting.","The speech was all fanfaronade and no plan.","fan-fair-uh-NAYD","Spanish>French"],
+["fuliginous","adjective","Sooty or dusky; dark and obscure.","A fuliginous haze hung over the mills.","fyoo-LIJ-uh-nus","Latin"],
+["gallimaufry","noun","A confused jumble of different things.","The attic held a gallimaufry of hats and lamps.","gal-uh-MAW-free","French"],
+["gegenschein","noun","A faint glow in the night sky directly opposite the sun.","Far from city lights, they spotted the gegenschein.","GAY-gun-shyne","German"],
+["glossolalia","noun","Speech in sounds that form no known language.","The recording captured several minutes of glossolalia.","glah-suh-LAY-lee-uh","Greek"],
+["haecceity","noun","The quality that makes a thing uniquely itself.","The essay tries to capture the haecceity of a single afternoon.","hek-SEE-uh-tee","Latin"],
+["hebdomadal","adjective","Happening once every seven days.","The club holds a hebdomadal meeting.","heb-DAH-muh-dul","Greek>Latin"],
+["hypallage","noun","A figure of speech that swaps the natural relation of two words.","A sleepless night is an example of hypallage.","hy-PAL-uh-jee","Greek>Latin"],
+["ichthyology","noun","The branch of zoology that deals with fish.","Her love of tide pools led her to ichthyology.","ik-thee-AH-luh-jee","Greek"],
+["jacaranda","noun","A tropical tree with clusters of purple-blue flowers.","A jacaranda shaded the plaza.","jak-uh-RAN-duh","Tupi>Portuguese"],
+["kakistocracy","noun","Government by the worst or least qualified people.","The satire imagines a bumbling kakistocracy.","kak-uh-STAH-kruh-see","Greek"],
+["katzenjammer","noun","A hangover; a loud, confused noise.","He woke with a katzenjammer after the banquet.","KAT-sun-jam-er","German"],
+["knaidel","noun","A dumpling made from matzo meal, usually served in soup.","A single knaidel floated in the broth.","kuh-NAY-dul","Yiddish"],
+["kookaburra","noun","An Australian bird whose call sounds like loud laughter.","A kookaburra cackled from the gum tree.","KOOK-uh-bur-uh","Wiradjuri"],
+["lepidopterist","noun","A person who studies or collects butterflies and moths.","The lepidopterist netted a rare swallowtail.","lep-uh-DAHP-tuh-rist","Greek>New Latin"],
+["lyophilize","verb","To preserve by freezing and then drying in a vacuum.","Labs lyophilize the samples for storage.","ly-AH-fuh-lyze","Greek"],
+["maieutic","adjective","Drawing out ideas from a person by asking questions.","The tutor preferred a maieutic approach.","may-YOO-tik","Greek"],
+["milquetoast","noun","A timid, meek person who is easily pushed around.","The boss was no milquetoast.","MILK-tohst","American English"],
+["myrmecology","noun","The scientific study of ants.","A childhood ant farm led him to myrmecology.","mur-muh-KAH-luh-jee","Greek"],
+["nidificate","verb","To build a nest.","Swallows nidificate under the eaves each spring.","NID-uh-fuh-kayt","Latin"],
+["nunatak","noun","A rocky peak that sticks up through a glacier or ice sheet.","The climbers camped beside a nunatak.","NUN-uh-tak","Greenlandic"],
+["obnubilate","verb","To cloud over or obscure.","Jargon can obnubilate a simple idea.","ahb-NOO-buh-layt","Latin"],
+["odontalgia","noun","A toothache.","He spent the night groaning with odontalgia.","oh-dahn-TAL-juh","Greek"],
+["oubliette","noun","A dungeon whose only opening is a trapdoor in the ceiling.","The prisoner was lowered into an oubliette.","oo-blee-ET","French"],
+["palimpsest","noun","A manuscript page that has been erased and written over.","Scholars read the older text beneath the palimpsest.","PAL-imp-sest","Greek>Latin"],
+["panjandrum","noun","A self-important official.","The local panjandrum demanded a front-row seat.","pan-JAN-drum","English"],
+["pfeffernuss","noun","A small, hard, spiced cookie eaten at Christmas.","She dusted each pfeffernuss with sugar.","FEF-er-noos","German"],
+["phylactery","noun","A small leather case holding scripture, worn during Jewish prayer.","He bound the phylactery to his arm.","fih-LAK-tuh-ree","Greek>Latin"],
+["pointillism","noun","A style of painting that uses tiny dots of pure color.","The harbor scene is a fine example of pointillism.","PWAN-tee-iz-um","French"],
+["pterodactyl","noun","An extinct flying reptile with wings of skin.","A pterodactyl glides across the museum ceiling.","tair-uh-DAK-tul","Greek>New Latin"],
+["quincunx","noun","An arrangement of five things, with one at each corner and one in the middle.","The orchard was planted in a quincunx.","KWIN-kunks","Latin"],
+["rijsttafel","noun","An Indonesian meal of rice served with many small side dishes.","The restaurant is known for its rijsttafel.","RYSE-tah-ful","Dutch"],
+["schottische","noun","A slow round dance similar to a polka.","The band struck up a schottische.","SHAH-tish","German"],
+["serrefine","noun","A small spring clamp used in surgery to close a blood vessel.","The surgeon reached for a serrefine.","sair-FEEN","French"],
+["shibboleth","noun","A word or custom that marks a person as belonging to a group.","Knowing the old cheer was a shibboleth among graduates.","SHIB-uh-leth","Hebrew"],
+["sphygmomanometer","noun","An instrument for measuring blood pressure.","The nurse wrapped the sphygmomanometer around his arm.","sfig-moh-muh-NAH-muh-ter","Greek"],
+["staphylococci","noun","Round bacteria that grow in clusters and can cause infection.","The culture showed staphylococci under the microscope.","staf-uh-loh-KAHK-sy","Greek>New Latin"],
+["stromuhr","noun","An instrument for measuring the speed of blood flow.","The physiologist measured the artery with a stromuhr.","STROH-moor","German"],
+["susurrus","noun","A soft whispering or rustling sound.","A susurrus of leaves filled the grove.","soo-SUR-us","Latin"],
+["synesthesia","noun","A condition in which one sense triggers another, such as hearing colors.","Because of her synesthesia, each note had a color.","sin-us-THEE-zhuh","Greek>New Latin"],
+["tatterdemalion","noun","A person dressed in ragged clothing.","A tatterdemalion begged at the city gate.","tat-er-dih-MAYL-yun","English"],
+["trichotillomania","noun","A compulsion to pull out one's own hair.","The clinic offers treatment for trichotillomania.","trik-uh-til-uh-MAY-nee-uh","Greek"],
+["ursprache","noun","A parent language reconstructed from later languages.","Linguists pieced together the ursprache from old roots.","OOR-shprah-kuh","German"],
+["vexillology","noun","The study of flags.","His collection of banners grew into a passion for vexillology.","vek-suh-LAH-luh-jee","Latin"],
+["widdershins","adverb","In a counterclockwise direction.","The dancers circled the fire widdershins.","WID-er-shinz","Low German"],
+["zeugma","noun","A figure of speech in which one word governs two others in different senses.","She lost her keys and her temper is a zeugma.","ZOOG-muh","Greek>Latin"],
+["zymurgy","noun","The branch of chemistry that deals with fermentation, as in brewing.","The brewer studied zymurgy in college.","ZY-mur-jee","Greek"]
+]
+];
+/*WORDS-END*/
+
+const LINES = {
+  ok: ["Splendid. I could not have spelled it better myself.", "Letter perfect.", "That one took me three tries when I was a larva.", "Correct, and with such confidence.", "Flawless. I am polishing my glasses in your honor."],
+  no: ["A slippery one. I keep a bookmark on that page.", "Close. The dictionary is a sneaky place.", "So near. The letters in red went astray.", "That word has fooled better worms than me."],
+  time: ["The clock ate that one.", "Out of time. Deep breath, next word."]
+};
+
+/* ---------------- helpers ---------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const pickOne = a => a[Math.floor(Math.random() * a.length)];
+function el(tag, attrs = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (v === true) n.setAttribute(k, '');
+    else if (v !== false && v != null) n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) {
+    if (c == null || c === false) continue;
+    n.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return n;
+}
+const lettersOnly = s => s.replace(/[^a-zA-Z]/g, '');
+const dictDef = d => d.charAt(0).toLowerCase() + d.slice(1).replace(/\.$/, '');
+
+/* ---------------- settings and state ---------------- */
+const DEFAULTS = { names: ['Speller 1', 'Speller 2'], spellers: 2, swapEvery: 1, timeLimit: 0, startLevel: 2,
+  clueDef: true, cluePos: true, clueSent: true, clueOrigin: true, showWord: false, voiceURI: '', rate: 0.85, sfx: true };
+const STORE = 'core-vocabulary.settings.v1';
+
+function sanitize(o) {
+  o = o && typeof o === 'object' ? o : {};
+  const s = {};
+  s.names = [0, 1].map(i => (Array.isArray(o.names) && typeof o.names[i] === 'string' && o.names[i].trim())
+    ? o.names[i].trim().slice(0, 16) : DEFAULTS.names[i]);
+  s.spellers = +o.spellers === 1 ? 1 : 2;
+  s.swapEvery = [0, 1, 3, 5].includes(+o.swapEvery) ? +o.swapEvery : DEFAULTS.swapEvery;
+  s.timeLimit = [0, 15, 30, 45, 60, 90].includes(+o.timeLimit) ? +o.timeLimit : 0;
+  s.startLevel = Math.min(8, Math.max(1, Math.round(+o.startLevel) || DEFAULTS.startLevel));
+  for (const k of ['clueDef', 'cluePos', 'clueSent', 'clueOrigin', 'showWord', 'sfx']) s[k] = typeof o[k] === 'boolean' ? o[k] : DEFAULTS[k];
+  s.voiceURI = typeof o.voiceURI === 'string' ? o.voiceURI : '';
+  s.rate = Math.min(1.1, Math.max(0.6, +o.rate || DEFAULTS.rate));
+  return s;
+}
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(STORE);
+    if (raw) return sanitize({ ...JSON.parse(raw), timeLimit: 0 }); // the clock always starts switched off
+  } catch (e) { /* storage unavailable: fall through to defaults */ }
+  return sanitize({});
+}
+function saveSettings() {
+  try { localStorage.setItem(STORE, JSON.stringify(S.settings)); } catch (e) { /* fine without it */ }
+}
+
+const S = { settings: loadSettings(), game: null, phase: 'setup' };
+let peeking = false;
+let lockUntil = 0;
+
+const playerName = i => S.settings.names[i] || DEFAULTS.names[i];
+const levelOf = p => p.level;
+const UP = 4, DOWN = -3;   // standing needed to move up a level, or to ease down
+function wordOf(c) {
+  const t = WORDS[c.level - 1][c.i];
+  return { word: t[0], pos: t[1], def: t[2], sent: t[3], pron: t[4] || '', origin: t[5] || '' };
+}
+// Where each source language was spoken. The first language in a word's chain decides its country.
+const HOMELANDS = {
+  'Old English': 'England', 'Middle English': 'England', 'English': 'England', 'American English': 'the United States',
+  'Latin': 'Italy, in ancient Rome', 'New Latin': 'Europe, in the Latin of modern science', 'Greek': 'Greece',
+  'French': 'France', 'Germanic': 'northern Europe', 'Old Norse': 'Scandinavia', 'Scandinavian': 'Scandinavia',
+  'German': 'Germany', 'Low German': 'Germany', 'Dutch': 'the Netherlands', 'Italian': 'Italy', 'Spanish': 'Spain',
+  'Portuguese': 'Portugal', 'Arabic': 'the Arabian Peninsula', 'Persian': 'Persia, now Iran', 'Hindi': 'India',
+  'Sanskrit': 'India', 'Tamil': 'southern India', 'Hebrew': 'ancient Israel', 'Egyptian': 'Egypt',
+  'Yiddish': 'Central and Eastern Europe', 'Russian': 'Russia', 'Turkish': 'Turkey', 'Welsh': 'Wales',
+  'Scottish Gaelic': 'Scotland', 'Nahuatl': 'Mexico', 'Quechua': 'Peru', 'Tupi': 'Brazil',
+  'Guugu Yimithirr': 'Australia', 'Wiradjuri': 'Australia', 'Greenlandic': 'Greenland'
+};
+function originOf(w) {
+  const chain = w.origin.split('>');
+  const rest = chain.slice(1);
+  const via = rest.length ? ', by way of ' + (rest.length > 1 ? rest.slice(0, -1).join(', ') + ' and ' + rest[rest.length - 1] : rest[0]) : '';
+  const place = HOMELANDS[chain[0]] || '';
+  return { languages: chain[0] + via, place,
+    spoken: 'This word comes from ' + chain[0] + via + '.' + (place ? ' Country of origin: ' + place + '.' : '') };
+}
+
+/* ---------------- sound effects (synthesized) ---------------- */
+const Sfx = (() => {
+  let ctx = null, master = null;
+  function ensure() {
+    try {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = 0.55;
+        master.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function tone(f, t, d, type, g, f2) {
+    if (!S.settings.sfx) return;
+    const c = ensure();
+    if (!c) return;
+    const t0 = c.currentTime + t;
+    const o = c.createOscillator(), a = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + d);
+    a.gain.setValueAtTime(0.0001, t0);
+    a.gain.exponentialRampToValueAtTime(g, t0 + 0.012);
+    a.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(a); a.connect(master);
+    o.start(t0); o.stop(t0 + d + 0.05);
+  }
+  return {
+    ensure,
+    correct() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.085, 0.24, 'triangle', 0.22)); tone(2093, 0.36, 0.35, 'sine', 0.07); },
+    wrong() { tone(311.13, 0, 0.26, 'sawtooth', 0.12, 233.08); tone(233.08, 0.3, 0.5, 'sawtooth', 0.12, 146.83); },
+    tick(urgent) { tone(urgent ? 1318.5 : 987.77, 0, 0.06, 'square', 0.07); },
+    timeout() { [0, 0.2, 0.4].forEach(t => tone(196, t, 0.15, 'square', 0.12)); tone(130.81, 0.62, 0.5, 'sawtooth', 0.11, 98); },
+    levelUp() { [659.25, 783.99, 987.77, 1318.5].forEach((f, i) => tone(f, 0.52 + i * 0.07, 0.2, 'triangle', 0.16)); },
+    levelDown() { tone(392, 0.95, 0.35, 'sine', 0.12, 261.63); }
+  };
+})();
+
+/* ---------------- speech ---------------- */
+const Speech = {
+  ok: 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined',
+  silent: false,     // true once we know the browser will not talk
+  current: null,
+  voices() {
+    if (!this.ok) return [];
+    try { return speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); } catch (e) { return []; }
+  },
+  best() {
+    const vs = this.voices();
+    if (!vs.length) return null;
+    if (S.settings.voiceURI) { const v = vs.find(v => v.voiceURI === S.settings.voiceURI); if (v) return v; }
+    const us = vs.filter(v => /^en[-_]US/i.test(v.lang));
+    const finer = us.find(v => /premium/i.test(v.name)) || us.find(v => /enhanced/i.test(v.name));
+    if (finer) return finer;
+    for (const name of ['Samantha', 'Ava', 'Allison', 'Evan', 'Google US English', 'Microsoft Aria', 'Microsoft Jenny', 'Microsoft Guy', 'Alex']) {
+      const v = us.find(v => v.name.includes(name));
+      if (v) return v;
+    }
+    return us.find(v => v.default) || us[0] || vs[0];
+  },
+  stop() {
+    if (!this.ok) return;
+    this.current = null;
+    try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+    setTalking(false);
+  },
+  say(text, onend) {
+    const finish = () => { if (onend) { const f = onend; onend = null; f(); } };
+    if (!this.ok) { setTimeout(finish, 1500); return; }
+    this.stop();
+    const u = new SpeechSynthesisUtterance(text);
+    const v = this.best();
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
+    u.rate = S.settings.rate;
+    let started = false, done = false;
+    const end = () => { if (done) return; done = true; if (this.current === u) { this.current = null; setTalking(false); } finish(); };
+    u.onstart = () => { started = true; if (this.silent) { this.silent = false; onSpeechChange(); } if (this.current === u) setTalking(true); };
+    u.onend = end;
+    u.onerror = e => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') { this.silent = true; onSpeechChange(); }
+      end();
+    };
+    this.current = u;
+    setTimeout(() => {
+      if (this.current !== u) return;
+      try { speechSynthesis.speak(u); } catch (e) { this.silent = true; onSpeechChange(); end(); }
+    }, 70);
+    // Watchdog: some embedded frames accept speak() and then stay quiet.
+    setTimeout(() => {
+      if (this.current === u && !started && !done) { this.silent = true; onSpeechChange(); end(); }
+    }, 3600);
+  }
+};
+function onSpeechChange() {
+  $('#speechNote').hidden = !Speech.silent;
+  if (S.game && S.game.cur) { renderCard(); renderClueButtons(); }
+}
+
+/* ---------------- mascot ---------------- */
+function stageMascot() { return $('#stageMascot .mascot'); }
+function setMood(mood) { const mEl = stageMascot(); if (mEl) mEl.dataset.mood = mood; }
+function setTalking(on) { const mEl = stageMascot(); if (mEl) mEl.classList.toggle('talking', !!on); }
+function popMascot() {
+  const mEl = stageMascot();
+  if (!mEl) return;
+  mEl.classList.remove('pop');
+  void mEl.getBoundingClientRect();
+  mEl.classList.add('pop');
+  setTimeout(() => mEl.classList.remove('pop'), 600);
+}
+function burst() {
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = el('div', { class: 'burst', 'aria-hidden': 'true' });
+  for (let i = 0; i < 14; i++) {
+    const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 90;
+    const b = el('i', { class: i % 3 === 0 ? 'pip' : '' });
+    b.style.setProperty('--dx', (Math.cos(a) * d).toFixed(0) + 'px');
+    b.style.setProperty('--dy', (Math.sin(a) * d - 40).toFixed(0) + 'px');
+    b.style.setProperty('--r', (Math.random() * 540 - 270).toFixed(0) + 'deg');
+    b.style.animationDelay = (Math.random() * 0.12).toFixed(2) + 's';
+    layer.append(b);
+  }
+  $('#stageMascot').append(layer);
+  setTimeout(() => layer.remove(), 1400);
+}
+
+/* ---------------- game logic ---------------- */
+function newPlayer() {
+  const lv = S.settings.startLevel;
+  return { level: lv, standing: 0, streak: 0, bestStreak: 0, correct: 0, attempts: 0, peak: lv, missed: [] };
+}
+// A correct word is worth 1 point of standing, or 2 once the speller has three in a row.
+// A miss costs 1 and ends the run. Standing resets to 0 whenever the level changes.
+function score(p, ok) {
+  if (ok) {
+    p.streak++;
+    p.standing += p.streak >= 3 ? 2 : 1;
+    if (p.standing >= UP) { if (p.level < 8) { p.level++; p.standing = 0; } else p.standing = UP - 1; }
+  } else {
+    p.streak = 0;
+    p.standing -= 1;
+    if (p.standing <= DOWN) { if (p.level > 1) { p.level--; p.standing = 0; } else p.standing = DOWN + 1; }
+  }
+}
+function correctToRise(p) {
+  let s = p.standing, k = p.streak, n = 0;
+  while (s < UP) { k++; s += k >= 3 ? 2 : 1; n++; }
+  return n;
+}
+const missesToDrop = p => p.standing - DOWN;
+function newGame() {
+  S.game = { players: [newPlayer(), newPlayer()], speller: 0, sinceSwap: 0, override: null, used: WORDS.map(() => []), round: 0, cur: null };
+}
+// No word repeats within a game, for either speller, until the whole bank has been used.
+// If a level runs dry, the nearest level with unused words supplies the next one.
+function pickWord(level) {
+  const g = S.game;
+  const order = [level];
+  for (let d = 1; d < 8; d++) { if (level + d <= 8) order.push(level + d); if (level - d >= 1) order.push(level - d); }
+  for (const L of order) {
+    const used = g.used[L - 1] || (g.used[L - 1] = []);
+    const pool = WORDS[L - 1].map((_, i) => i).filter(i => !used.includes(i));
+    if (pool.length) { const i = pickOne(pool); used.push(i); return { level: L, i }; }
+  }
+  g.used = WORDS.map(() => []);
+  return pickWord(level);
+}
+function upcomingSpeller() {
+  const g = S.game;
+  if (S.settings.spellers !== 2) return 0;
+  if (g.override != null) return g.override;
+  if (S.settings.swapEvery > 0 && g.sinceSwap + 1 >= S.settings.swapEvery) return 1 - g.speller;
+  return g.speller;
+}
+
+const timer = { id: null, fallback: null, deadline: 0, running: false, lastWhole: null };
+function stopTimer() {
+  clearInterval(timer.id); clearTimeout(timer.fallback);
+  timer.id = timer.fallback = null; timer.running = false; timer.lastWhole = null;
+}
+function paintTimer(rem) {
+  const limit = S.settings.timeLimit;
+  $('#timerFill').style.width = Math.max(0, Math.min(100, (rem / limit) * 100)).toFixed(1) + '%';
+  $('#timerNum').textContent = Math.max(0, Math.ceil(rem)) + 's';
+}
+function beginTimer() {
+  const limit = S.settings.timeLimit;
+  if (!limit || timer.running || S.phase !== 'spelling') return;
+  clearTimeout(timer.fallback);
+  timer.running = true;
+  timer.deadline = performance.now() + limit * 1000;
+  const warnAt = limit >= 45 ? 10 : 5;
+  timer.id = setInterval(() => {
+    const rem = (timer.deadline - performance.now()) / 1000;
+    paintTimer(rem);
+    const whole = Math.ceil(rem);
+    if (rem > 0 && whole <= warnAt && whole !== timer.lastWhole) {
+      timer.lastWhole = whole;
+      $('#timer').classList.add('low');
+      setMood('nervous');
+      Sfx.tick(whole <= 3);
+    }
+    if (rem <= 0) submit('timeout');
+  }, 100);
+}
+
+function startRound() {
+  const g = S.game;
+  if (S.settings.spellers !== 2) g.speller = 0;
+  const p = g.players[g.speller];
+  const level = levelOf(p);
+  g.round++;
+  const pick = pickWord(level);
+  g.cur = { level: pick.level, i: pick.i, def: false, pos: false, sent: false, origin: false, result: null };
+  S.phase = 'spelling';
+  peeking = false;
+  stopTimer();
+  $('#answer').value = '';
+  $('#cardHint').textContent = 'Spell it out loud. Typist, press Enter after the last letter.';
+  renderPlay();
+  setMood('idle');
+  popMascot();
+  $('#answer').focus({ preventScroll: true });
+  const round = g.round;
+  const whenSpoken = () => { if (S.game && S.game.round === round) beginTimer(); };
+  Speech.say(wordOf(g.cur).word, whenSpoken);
+  if (S.settings.timeLimit) timer.fallback = setTimeout(whenSpoken, 5000);
+}
+
+function clue(kind) {
+  if (S.phase !== 'spelling') return;
+  const c = S.game.cur, w = wordOf(c);
+  if (kind === 'say') Speech.say(w.word);
+  else if (kind === 'def' && S.settings.clueDef) { c.def = true; renderCard(); Speech.say(w.def); }
+  else if (kind === 'pos' && S.settings.cluePos) { c.pos = true; renderCard(); Speech.say(w.pos); }
+  else if (kind === 'sent' && S.settings.clueSent) { c.sent = true; renderCard(); Speech.say(w.sent); }
+  else if (kind === 'origin' && S.settings.clueOrigin) { c.origin = true; renderCard(); Speech.say(originOf(w).spoken); }
+  $('#answer').focus({ preventScroll: true });
+}
+
+function submit(reason) {
+  if (S.phase !== 'spelling') return;
+  const input = $('#answer');
+  const typed = lettersOnly(input.value);
+  if (reason !== 'timeout' && !typed) {
+    input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
+    input.focus();
+    return;
+  }
+  stopTimer();
+  Speech.stop();
+  const g = S.game, c = g.cur, p = g.players[g.speller], w = wordOf(c);
+  const ok = reason !== 'timeout' && typed.toLowerCase() === w.word.toLowerCase();
+  const before = levelOf(p);
+  p.attempts++;
+  score(p, ok);
+  if (ok) { p.correct++; p.bestStreak = Math.max(p.bestStreak, p.streak); }
+  else p.missed.push({ word: w.word, typed, timeout: reason === 'timeout' });
+  const after = levelOf(p);
+  p.peak = Math.max(p.peak, after);
+  c.result = { ok, typed, reason, before, after };
+  S.phase = 'result';
+  lockUntil = performance.now() + 450;
+
+  if (ok) { Sfx.correct(); if (after > before) Sfx.levelUp(); setMood('happy'); burst(); }
+  else { if (reason === 'timeout') Sfx.timeout(); else Sfx.wrong(); if (after < before) Sfx.levelDown(); setMood('sad'); }
+  $('#cardHint').textContent = pickOne(ok ? LINES.ok : reason === 'timeout' ? LINES.time : LINES.no);
+  renderPlay();
+  const nb = $('#nextBtn');
+  if (nb) nb.focus({ preventScroll: true });
+}
+
+function next() {
+  if (S.phase !== 'result' || performance.now() < lockUntil) return;
+  advanceSpeller();
+  Sfx.ensure();
+  startRound();
+}
+function advanceSpeller() {
+  const g = S.game;
+  const up = upcomingSpeller();
+  if (up !== g.speller) { g.speller = up; g.sinceSwap = 0; } else g.sinceSwap++;
+  g.override = null;
+}
+
+function abandonRound() {
+  stopTimer();
+  Speech.stop();
+  if (!S.game) return;
+  if (S.game.cur && S.game.cur.result) advanceSpeller();
+  S.game.cur = null;
+}
+
+/* ---------------- rendering ---------------- */
+function show(name) {
+  for (const n of ['setup', 'play', 'summary']) $('#screen-' + n).hidden = n !== name;
+  if (name !== 'play') S.phase = name;
+  window.scrollTo(0, 0);
+}
+
+function sentenceNodes(w, revealed) {
+  const hit = new RegExp('\\b' + w.word + '\\b', 'i').exec(w.sent);
+  if (!hit) return [w.sent];
+  return ['“', w.sent.slice(0, hit.index),
+    revealed ? el('b', { text: hit[0] }) : el('span', { class: 'blank', role: 'img', 'aria-label': 'blank' }),
+    w.sent.slice(hit.index + hit[0].length), '”'];
+}
+
+function isRevealed() {
+  return S.phase === 'result' || peeking || S.settings.showWord || Speech.silent;
+}
+
+function renderCard() {
+  const g = S.game, c = g.cur;
+  if (!c) return;
+  const w = wordOf(c), done = S.phase === 'result', revealed = isRevealed();
+  $('#cardLevel').textContent = LEVELS[c.level - 1] + ' · level ' + c.level;
+  $('#cardCount').textContent = 'Word ' + g.round;
+  const hw = $('#headword');
+  hw.classList.toggle('redacted', !revealed);
+  hw.textContent = revealed ? w.word : '';
+  if (revealed) hw.removeAttribute('aria-label'); else hw.setAttribute('aria-label', 'The word is hidden');
+  $('#pron').textContent = revealed && w.pron ? '\\' + w.pron + '\\' : '';
+  $('#posOut').textContent = (c.pos || done) ? w.pos : '';
+  const def = $('#defOut');
+  def.hidden = !(c.def || done);
+  def.replaceChildren(el('b', { text: ': ' }), dictDef(w.def));
+  const sent = $('#sentOut');
+  sent.hidden = !(c.sent || done);
+  sent.replaceChildren(...sentenceNodes(w, revealed));
+  const origin = $('#originOut'), o = originOf(w);
+  origin.hidden = !(c.origin || done);
+  origin.replaceChildren('Origin: ', el('b', { text: o.languages }), o.place ? '. Country: ' : '', o.place ? el('b', { text: o.place }) : '', '.');
+}
+
+function renderClueButtons() {
+  const spelling = S.phase === 'spelling';
+  $('#clues').hidden = !spelling;
+  $('#clueDefBtn').hidden = !S.settings.clueDef;
+  $('#cluePosBtn').hidden = !S.settings.cluePos;
+  $('#clueSentBtn').hidden = !S.settings.clueSent;
+  $('#clueOriginBtn').hidden = !S.settings.clueOrigin;
+  $('#peekBtn').hidden = S.settings.showWord || Speech.silent;
+}
+
+function tiles(text, mask, flag) {
+  const row = el('div', { class: 'tiles pop' });
+  [...text].forEach((ch, i) => {
+    const t = el('span', { class: 'tile' + (mask && !mask[i] ? ' ' + flag : ''), text: ch });
+    t.style.animationDelay = (i * 0.03).toFixed(2) + 's';
+    row.append(t);
+  });
+  row.setAttribute('aria-label', [...text].join(' ').toUpperCase());
+  return row;
+}
+// Longest common subsequence, so one dropped letter does not paint the whole tail red.
+function lcsMasks(a, b) {
+  const n = a.length, m = b.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const ma = new Array(n).fill(false), mb = new Array(m).fill(false);
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { ma[i] = mb[j] = true; i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) i++;
+    else j++;
+  }
+  return [ma, mb];
+}
+
+const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+function nextHint(p) {
+  const lv = levelOf(p);
+  const up = lv >= 8 ? 'Top of the tree' : plural(correctToRise(p), 'more in a row', 'more in a row') + ' to reach ' + LEVELS[lv];
+  const down = lv <= 1 ? '' : ' ' + plural(missesToDrop(p), 'more miss eases', 'more misses ease') + ' down.';
+  return up + '.' + down;
+}
+function meter(p) {
+  const box = el('div', { class: 'meter', role: 'img', 'aria-label': 'Standing ' + p.standing + ' on a scale from ' + DOWN + ' to ' + UP });
+  for (let k = DOWN; k <= UP; k++) {
+    if (k === 0) { box.append(el('i', { class: 'mid' })); continue; }
+    box.append(el('i', { class: k < 0 ? (p.standing <= k ? 'on-down' : '') : (p.standing >= k ? 'on-up' : '') }));
+  }
+  return box;
+}
+
+function renderResult() {
+  const box = $('#result'), g = S.game, c = g.cur, r = c.result, w = wordOf(c), p = g.players[g.speller];
+  const who = playerName(g.speller);
+  box.replaceChildren();
+  box.append(el('h2', { class: 'verdict ' + (r.ok ? 'ok' : 'no'), text: r.ok ? 'Correct!' : r.reason === 'timeout' ? "Time's up." : 'Not quite.' }));
+  if (r.ok) {
+    box.append(tiles(w.word));
+  } else {
+    const [ma, mb] = lcsMasks(r.typed.toLowerCase(), w.word.toLowerCase());
+    box.append(el('div', { class: 'cmp' },
+      el('span', { class: 'cmp-label', text: 'Typed' }),
+      r.typed ? tiles(r.typed, ma, 'miss') : el('span', { class: 'cmp-none', text: 'nothing entered' }),
+      el('span', { class: 'cmp-label', text: 'Correct' }),
+      tiles(w.word, mb, 'need')));
+    if (r.typed) box.append(el('p', { class: 'legend', text: 'Red letters did not belong. Green letters were missing.' }));
+  }
+  let move;
+  if (r.after > r.before) move = who + ' moves up to ' + LEVELS[r.after - 1] + ', level ' + r.after + '.';
+  else if (r.after < r.before) move = 'Easing down to ' + LEVELS[r.after - 1] + ', level ' + r.after + '.';
+  else if (r.ok) move = r.after >= 8 ? 'Holding at the top of the tree.' : plural(correctToRise(p), 'more in a row reaches ', 'more in a row reach ') + LEVELS[r.after] + '.';
+  else move = r.after <= 1 ? 'Staying at ' + LEVELS[0] + '.' : 'Still at ' + LEVELS[r.after - 1] + '. ' + plural(missesToDrop(p), 'more miss eases', 'more misses ease') + ' down.';
+  box.append(el('p', { text: move }));
+
+  const up = upcomingSpeller();
+  const label = S.settings.spellers === 2 ? 'Next word: ' + playerName(up) + ' spells' : 'Next word';
+  const actions = el('div', { class: 'actions' },
+    el('button', { type: 'button', class: 'btn btn-primary btn-big', id: 'nextBtn', text: label }),
+    el('button', { type: 'button', class: 'btn btn-sm', id: 'hearBtn', text: 'Hear it again' }));
+  if (S.settings.spellers === 2) actions.append(el('button', { type: 'button', class: 'btn btn-sm', id: 'swapBtn', text: 'Swap who spells next' }));
+  box.append(actions);
+  $('#nextBtn').addEventListener('click', next);
+  $('#hearBtn').addEventListener('click', () => Speech.say(w.word));
+  const sb = $('#swapBtn');
+  if (sb) sb.addEventListener('click', () => {
+    g.override = 1 - upcomingSpeller();
+    $('#nextBtn').textContent = 'Next word: ' + playerName(upcomingSpeller()) + ' spells';
+    $('#nextBtn').focus();
+  });
+}
+
+const MINI_APPLE = '<svg viewBox="0 0 24 24" aria-hidden="true" class="CLS"><path class="leaf" d="M12 6.6 C12.4 4.2 14.6 2.6 17 3 C16.8 5.4 14.6 7 12 6.6Z"/><path class="body" d="M12 7.4 C10 4.9 3.6 5.4 3.1 11.8 C2.7 17.2 7 21.6 10 21.1 C11 20.9 11.5 20.5 12 20.5 C12.5 20.5 13 20.9 14 21.1 C17 21.6 21.3 17.2 20.9 11.8 C20.4 5.4 14 4.9 12 7.4Z"/></svg>';
+function ladder(p) {
+  const lv = levelOf(p);
+  const box = el('div', { class: 'ladder', role: 'img', 'aria-label': 'Level ' + lv + ' of 8' });
+  let html = '';
+  for (let k = 1; k <= 8; k++) html += MINI_APPLE.replace('CLS', k < lv ? 'a-full' : k === lv ? 'a-cur' : 'a-empty');
+  box.innerHTML = html;
+  return box;
+}
+const stat = (k, v) => el('div', {}, el('dt', { text: k }), el('dd', { text: String(v) }));
+
+function renderLedger() {
+  const box = $('#ledger'), g = S.game;
+  box.replaceChildren(el('p', { class: 'ledger-title', text: S.settings.spellers === 2 ? 'The spellers' : 'The speller' }));
+  for (let i = 0; i < S.settings.spellers; i++) {
+    const p = g.players[i], lv = levelOf(p), up = i === g.speller;
+    box.append(el('div', { class: 'panel player' + (up ? ' is-up' : '') },
+      el('div', { class: 'player-top' },
+        el('span', { class: 'player-name', text: playerName(i) }),
+        el('span', { class: 'badge', text: up ? 'Spelling' : 'Typing' })),
+      el('div', {}, el('span', { class: 'lv-name', text: LEVELS[lv - 1] }), el('span', { class: 'lv-num', text: 'level ' + lv + ' of 8' })),
+      ladder(p),
+      meter(p),
+      el('p', { class: 'next-hint', text: nextHint(p) }),
+      el('dl', { class: 'stats' }, stat('Correct', p.correct + '/' + p.attempts), stat('Streak', p.streak), stat('Best', p.bestStreak))));
+  }
+}
+
+function renderPlay() {
+  const g = S.game, spelling = S.phase === 'spelling';
+  const roles = $('#roles');
+  roles.replaceChildren(el('b', { text: playerName(g.speller) }), ' spells out loud. ', el('b', { text: playerName(1 - g.speller) }), ' types.');
+  renderCard();
+  renderClueButtons();
+  $('#speechNote').hidden = !Speech.silent;
+  const limit = S.settings.timeLimit;
+  $('#timer').hidden = !(limit && spelling);
+  if (limit && spelling && !timer.running) { $('#timer').classList.remove('low'); paintTimer(limit); }
+  $('#answerForm').hidden = !spelling;
+  $('#result').hidden = spelling;
+  if (!spelling) renderResult();
+  renderLedger();
+  $('#soundBtn').textContent = S.settings.sfx ? 'Sound on' : 'Sound off';
+  $('#soundBtn').setAttribute('aria-pressed', String(S.settings.sfx));
+}
+
+function renderSummary() {
+  const g = S.game, box = $('#summaryBody');
+  box.replaceChildren();
+  let total = 0, right = 0;
+  for (let i = 0; i < S.settings.spellers; i++) {
+    const p = g.players[i];
+    total += p.attempts; right += p.correct;
+    const acc = p.attempts ? Math.round(100 * p.correct / p.attempts) + '%' : 'n/a';
+    const card = el('article', { class: 'panel sum' },
+      el('h3', { text: playerName(i) }),
+      el('dl', { class: 'stats' }, stat('Correct', p.correct + ' of ' + p.attempts), stat('Accuracy', acc), stat('Best streak', p.bestStreak), stat('Highest level', LEVELS[p.peak - 1])));
+    if (p.missed.length) {
+      card.append(el('h4', { text: 'Words to revisit' }), el('ul', { class: 'missed' }, p.missed.map(mw => el('li', {},
+        el('b', { text: mw.word }),
+        el('span', { text: mw.timeout ? (mw.typed ? ', out of time at “' + mw.typed.toLowerCase() + '”' : ', out of time') : ', typed as “' + mw.typed.toLowerCase() + '”' })))));
+    } else {
+      card.append(el('p', { class: 'fine', text: p.attempts ? 'No misses. Wormsworth is impressed.' : 'No words attempted.' }));
+    }
+    box.append(card);
+  }
+  $('#summaryLine').textContent = total ? right + ' of ' + total + ' words spelled correctly.' : 'No words attempted yet.';
+  $('#summaryMascot').innerHTML = mascotSVG({ uid: 'sum' });
+  $('#summaryMascot .mascot').dataset.mood = total && right * 2 >= total ? 'happy' : 'idle';
+}
+
+/* ---------------- setup form ---------------- */
+function fillVoices() {
+  const sel = $('#voice'), vs = Speech.voices();
+  const us = vs.filter(v => /^en[-_]US/i.test(v.lang)), rest = vs.filter(v => !/^en[-_]US/i.test(v.lang));
+  sel.replaceChildren(el('option', { value: '', text: 'Automatic (US English)' }),
+    ...us.concat(rest).map(v => el('option', { value: v.voiceURI, text: v.name + ' (' + v.lang + ')' })));
+  sel.value = vs.some(v => v.voiceURI === S.settings.voiceURI) ? S.settings.voiceURI : '';
+}
+function syncNameLabels() {
+  const two = $('#spellers2').checked;
+  $('#name1Label').textContent = two ? 'Speller 2' : 'Typist';
+  $('#name1').placeholder = two ? 'Speller 2' : 'Typist';
+  $('#swapField').hidden = !two;
+}
+function fillSetup() {
+  const s = S.settings;
+  $('#spellers' + s.spellers).checked = true;
+  $('#name0').value = s.names[0] === DEFAULTS.names[0] ? '' : s.names[0];
+  $('#name1').value = s.names[1] === DEFAULTS.names[1] ? '' : s.names[1];
+  $('#swapEvery').value = String(s.swapEvery);
+  $('#time' + s.timeLimit).checked = true;
+  $('#startLevel').value = String(s.startLevel);
+  for (const k of ['clueDef', 'cluePos', 'clueSent', 'clueOrigin', 'showWord', 'sfx']) $('#' + k).checked = s[k];
+  $('#rate').value = String(s.rate);
+  fillVoices();
+  syncNameLabels();
+  const live = !!(S.game && S.game.round > 0);
+  $('#resumeBtn').hidden = !live;
+  $('#startBtn').textContent = live ? 'Start a new game' : 'Start spelling';
+}
+function readSetup() {
+  const two = $('#spellers2').checked;
+  const fallback1 = two ? 'Speller 2' : 'Typist';
+  const t = document.querySelector('input[name="timeLimit"]:checked');
+  S.settings = sanitize({
+    names: [$('#name0').value.trim() || 'Speller 1', $('#name1').value.trim() || fallback1],
+    spellers: two ? 2 : 1,
+    swapEvery: $('#swapEvery').value,
+    timeLimit: t ? t.value : 0,
+    startLevel: $('#startLevel').value,
+    clueDef: $('#clueDef').checked, cluePos: $('#cluePos').checked, clueSent: $('#clueSent').checked, clueOrigin: $('#clueOrigin').checked,
+    showWord: $('#showWord').checked, sfx: $('#sfx').checked,
+    voiceURI: $('#voice').value, rate: $('#rate').value
+  });
+  saveSettings();
+}
+
+/* ---------------- wiring ---------------- */
+function wire() {
+  $('#heroMascot').innerHTML = mascotSVG({ uid: 'hero' });
+  $('#stageMascot').innerHTML = mascotSVG({ uid: 'stage' });
+  $('#brandIcon').innerHTML = mascotSVG({ uid: 'brand', mood: 'idle', icon: true });
+  try {
+    const link = el('link', { rel: 'icon', type: 'image/svg+xml', href: 'data:image/svg+xml,' + encodeURIComponent(mascotSVG({ uid: 'fav', mood: 'happy', icon: true })) });
+    document.head.append(link);
+  } catch (e) { /* no favicon, no problem */ }
+
+  $('#wordCount').textContent = String(WORDS.reduce((n, lv) => n + lv.length, 0));
+  $('#startLevel').replaceChildren(...LEVELS.map((n, i) => el('option', { value: String(i + 1), text: (i + 1) + '. ' + n })));
+
+  if (Speech.ok) {
+    try { speechSynthesis.addEventListener('voiceschanged', () => { fillVoices(); $('#voiceNote').hidden = Speech.voices().length > 0; }); } catch (e) { /* older engines */ }
+    setTimeout(() => { if (!Speech.voices().length) { $('#voiceNote').hidden = false; } }, 1800);
+  } else {
+    Speech.silent = true;
+    $('#voiceNote').hidden = false;
+  }
+
+  $('#spellers1').addEventListener('change', syncNameLabels);
+  $('#spellers2').addEventListener('change', syncNameLabels);
+  $('#voiceTest').addEventListener('click', () => {
+    S.settings.voiceURI = $('#voice').value;
+    S.settings.rate = Math.min(1.1, Math.max(0.6, +$('#rate').value || 0.85));
+    Speech.say('Hello. I am Wormsworth. Your word is orchard.');
+  });
+
+  $('#setupForm').addEventListener('submit', e => {
+    e.preventDefault();
+    readSetup();
+    newGame();
+    Sfx.ensure();
+    show('play');
+    startRound();
+  });
+  $('#resumeBtn').addEventListener('click', () => {
+    readSetup();
+    Sfx.ensure();
+    show('play');
+    startRound();
+  });
+
+  $('#answerForm').addEventListener('submit', e => { e.preventDefault(); submit('enter'); });
+  $('#answer').addEventListener('input', e => {
+    const v = lettersOnly(e.target.value);
+    if (v !== e.target.value) e.target.value = v;
+  });
+
+  $('#clueSay').addEventListener('click', () => clue('say'));
+  $('#clueDefBtn').addEventListener('click', () => clue('def'));
+  $('#cluePosBtn').addEventListener('click', () => clue('pos'));
+  $('#clueSentBtn').addEventListener('click', () => clue('sent'));
+  $('#clueOriginBtn').addEventListener('click', () => clue('origin'));
+
+  const peek = $('#peekBtn');
+  const setPeek = on => {
+    if (peeking === on || S.phase !== 'spelling') return;
+    peeking = on;
+    peek.classList.toggle('is-held', on);
+    renderCard();
+    if (!on) $('#answer').focus({ preventScroll: true });
+  };
+  peek.addEventListener('pointerdown', e => { e.preventDefault(); setPeek(true); });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel', 'blur']) peek.addEventListener(ev, () => setPeek(false));
+  peek.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); setPeek(true); } });
+  peek.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') setPeek(false); });
+  peek.addEventListener('contextmenu', e => e.preventDefault());
+
+  $('#soundBtn').addEventListener('click', () => {
+    S.settings.sfx = !S.settings.sfx;
+    saveSettings();
+    renderPlay();
+    if (S.settings.sfx) Sfx.tick(false);
+    if (S.phase === 'spelling') $('#answer').focus({ preventScroll: true });
+  });
+  $('#settingsBtn').addEventListener('click', () => { abandonRound(); fillSetup(); show('setup'); });
+  $('#endBtn').addEventListener('click', () => { abandonRound(); renderSummary(); show('summary'); });
+  $('#againBtn').addEventListener('click', () => { newGame(); Sfx.ensure(); show('play'); startRound(); });
+  $('#backBtn').addEventListener('click', () => { S.game = null; fillSetup(); show('setup'); });
+
+  document.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey || $('#screen-play').hidden) return;
+    if (S.phase === 'spelling') {
+      if (/^[1-5]$/.test(e.key)) { e.preventDefault(); clue(['say', 'def', 'pos', 'sent', 'origin'][+e.key - 1]); }
+      else if (/^[a-zA-Z]$/.test(e.key) && document.activeElement !== $('#answer') && document.activeElement !== $('#peekBtn')) $('#answer').focus();
+    } else if (S.phase === 'result' && e.key === '1' && S.game.cur) {
+      e.preventDefault();
+      Speech.say(wordOf(S.game.cur).word);
+    }
+  });
+}
+
+function start(data) {
+  data = data || {};
+  if (data.settings) S.settings = sanitize(data.settings);
+  if (data.game && Array.isArray(data.game.players) && data.game.players.length === 2) {
+    S.game = data.game;
+    S.game.cur = null;
+    for (const pl of S.game.players) {          // snapshots from before levels had a standing
+      if (typeof pl.level !== 'number') { pl.level = Math.min(8, Math.max(1, Math.floor(pl.rating || 1))); pl.standing = 0; }
+    }
+    if (!Array.isArray(S.game.used)) S.game.used = WORDS.map(() => []);
+  }
+  fillSetup();
+  show('setup');
+}
+
+wire();
+const hot = window.claude && window.claude.hot;
+if (hot && typeof hot.snapshot === 'function') {
+  hot.snapshot(() => ({ settings: S.settings, game: S.game ? { ...S.game, cur: null } : null }));
+}
+if (hot && typeof hot.ready === 'function') hot.ready(start);
+else start(hot && hot.data);
+})();
+</script>
+</body>
+</html>

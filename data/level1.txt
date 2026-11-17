@@ -1,0 +1,100 @@
+garden|n|Germanic>French|A piece of ground where flowers or vegetables are grown.|We planted tomatoes in the garden behind the house.
+pencil|n|Latin>French|A thin writing tool with a core of graphite.|She sharpened her pencil before the test.
+rabbit|n|Middle English|A small furry animal with long ears and a short tail.|A rabbit hopped across the lawn at dawn.
+window|n|Old Norse|An opening in a wall, usually fitted with glass, that lets in light.|He opened the window to let in the breeze.
+button|n|Germanic>French|A small disk sewn onto clothing to fasten it.|A button popped off my coat this morning.
+yellow|adj|Old English|Having the color of ripe lemons or egg yolks.|The yellow school bus stopped at the corner.
+basket|n|French|A container woven from strips of wood, cane, or wire.|We filled the basket with apples from the orchard.
+winter|n|Old English|The coldest season of the year.|The lake freezes solid every winter.
+monkey|n|Low German|A lively, long-tailed primate that often lives in trees.|The monkey swung from branch to branch.
+purple|adj|Greek>Latin>Old English|Having a color between red and blue.|Her purple scarf stood out in the crowd.
+kitten|n|French|A young cat.|The kitten chased a ball of yarn across the floor.
+dinner|n|Latin>French|The main meal of the day, usually eaten in the evening.|We had spaghetti for dinner last night.
+planet|n|Greek>Latin>French|A large body in space that orbits a star.|Saturn is the planet famous for its rings.
+silver|n|Old English|A shiny grayish-white precious metal.|The trophy was made of polished silver.
+bridge|n|Old English|A structure that carries a road or path over a river or gap.|We walked across the bridge to reach the park.
+cheese|n|Latin>Old English|A food made from pressed milk curds.|He added extra cheese to his sandwich.
+friend|n|Old English|A person you like, trust, and enjoy spending time with.|My best friend lives two doors down.
+school|n|Greek>Latin>Old English|A place where students go to learn.|The school opens its doors at eight o'clock.
+orange|n|Sanskrit>Arabic>French|A round citrus fruit with a thick reddish-yellow rind.|She peeled an orange and shared the slices.
+pocket|n|Germanic>French|A small pouch sewn into clothing for carrying things.|He kept the key in his front pocket.
+apple|n|Old English|A round fruit with red, green, or yellow skin and crisp flesh.|She packed an apple in her lunch bag.
+river|n|Latin>French|A large natural stream of water flowing toward a sea or lake.|We paddled a canoe down the river.
+tiger|n|Greek>Latin|A large wild cat with orange fur and black stripes.|The tiger paced along the edge of the pond.
+table|n|Latin>French|A piece of furniture with a flat top and legs.|Please set the plates on the table.
+water|n|Old English|The clear liquid that falls as rain and fills lakes and seas.|He poured a glass of cold water.
+paper|n|Greek>Latin>French|Thin sheets made from wood pulp, used for writing or wrapping.|She folded the paper into a tiny boat.
+horse|n|Old English|A large hoofed animal used for riding and pulling loads.|The horse trotted across the field.
+music|n|Greek>Latin>French|Sounds arranged in a pleasing pattern of melody and rhythm.|Soft music played in the waiting room.
+bread|n|Old English|A baked food made from flour, water, and yeast.|The smell of fresh bread filled the bakery.
+cloud|n|Old English|A white or gray mass of tiny water drops floating in the sky.|A dark cloud drifted over the hills.
+grass|n|Old English|The green plants with narrow leaves that cover lawns and fields.|The grass was wet with morning dew.
+house|n|Old English|A building in which people live.|Their house has a bright red door.
+mouse|n|Old English|A small rodent with a pointed nose and a long thin tail.|A mouse scurried under the barn door.
+snake|n|Old English|A long reptile with no legs.|A green snake slid through the reeds.
+train|n|Latin>French|A line of connected railroad cars pulled by an engine.|The train pulled into the station on time.
+truck|n|Greek>Latin|A large motor vehicle built for carrying heavy loads.|A truck delivered the new piano.
+smile|n|Scandinavian|A happy expression in which the corners of the mouth turn up.|Her smile lit up the whole room.
+spoon|n|Old English|A utensil with a small shallow bowl on a handle, used for eating.|He stirred his tea with a spoon.
+stone|n|Old English|A small piece of rock.|She skipped a flat stone across the pond.
+storm|n|Old English|Weather with strong wind and heavy rain or snow.|The storm knocked down three trees.
+sugar|n|Sanskrit>Arabic>French|A sweet substance made from cane or beets.|He stirred a spoonful of sugar into the lemonade.
+tooth|n|Old English|One of the hard white objects in the mouth used for biting.|My little brother lost his first tooth.
+tower|n|Greek>Latin>French|A tall, narrow building or part of a building.|The clock tower chimes every hour.
+zebra|n|Portuguese|An African animal like a horse with black and white stripes.|A zebra grazed beside the watering hole.
+lemon|n|Persian>Arabic>French|A sour yellow citrus fruit.|She squeezed a lemon over the fish.
+melon|n|Greek>Latin>French|A large, juicy fruit with a thick rind.|We sliced a ripe melon for dessert.
+onion|n|Latin>French|A round vegetable with a sharp taste and many layers.|Chopping an onion made his eyes water.
+pepper|n|Sanskrit>Greek>Latin|A spicy seasoning made from ground dried berries.|He sprinkled pepper on his eggs.
+butter|n|Greek>Latin>Old English|A soft yellow food made by churning cream.|She spread butter on the warm toast.
+carrot|n|Greek>Latin>French|A long orange root vegetable.|The rabbit nibbled on a carrot.
+cherry|n|Greek>Latin>French|A small round red fruit with a pit.|He put a cherry on top of the sundae.
+circle|n|Latin>French|A perfectly round flat shape.|The children sat in a circle on the rug.
+candle|n|Latin>Old English|A stick of wax with a wick that is burned to give light.|She lit a candle when the power went out.
+castle|n|Latin>French|A large stone building with thick walls and towers.|The old castle stands on a cliff above the sea.
+corner|n|Latin>French|The place where two lines, walls, or streets meet.|The bakery is on the corner of Elm Street.
+cotton|n|Arabic>French|A soft white fiber used to make cloth.|This shirt is made of pure cotton.
+dragon|n|Greek>Latin>French|A giant, fire-breathing reptile in stories and legends.|The knight faced the dragon at the cave.
+finger|n|Old English|One of the five long parts at the end of the hand.|She wore a ring on her little finger.
+flower|n|Latin>French|The colorful part of a plant that makes seeds.|A single flower grew by the fence.
+forest|n|Latin>French|A large area of land covered with trees.|Deer live deep in the forest.
+gentle|adj|Latin>French|Soft, mild, and kind.|Be gentle when you hold the baby chick.
+hammer|n|Old English|A tool with a heavy head used for pounding nails.|He drove the nail in with a hammer.
+jacket|n|French|A short, light coat.|Bring a jacket in case it gets cold.
+jungle|n|Sanskrit>Hindi|A thick tropical forest.|Parrots called from high in the jungle.
+ladder|n|Old English|A set of steps between two long sides, used for climbing.|She climbed the ladder to reach the roof.
+market|n|Latin>French|A place where people gather to buy and sell goods.|We bought peaches at the farmers market.
+mirror|n|Latin>French|A smooth glass surface that reflects an image.|He checked his tie in the mirror.
+mitten|n|French|A warm hand covering with one section for the thumb.|She dropped a mitten in the snow.
+napkin|n|Latin>French|A small cloth or paper used to wipe the mouth at meals.|He tucked a napkin under his chin.
+number|n|Latin>French|A word or symbol that shows how many.|Pick a number between one and ten.
+parrot|n|French|A colorful tropical bird that can copy sounds.|The parrot repeated every word we said.
+pillow|n|Latin>Old English|A soft cushion for resting the head.|She fluffed the pillow before bed.
+pirate|n|Greek>Latin|A robber who attacks ships at sea.|The pirate hid his gold on an island.
+puppet|n|Latin>French|A small figure moved by strings or by a hand inside it.|The puppet waved from behind the curtain.
+puzzle|n|English|A game or problem that tests clever thinking.|We finished the puzzle before bedtime.
+rocket|n|Italian|A vehicle that is pushed into space by burning fuel.|The rocket roared off the launch pad.
+sister|n|Old Norse|A girl or woman who has the same parents as another person.|My sister taught me to ride a bike.
+spider|n|Old English|A small creature with eight legs that spins webs.|A spider spun a web across the porch.
+summer|n|Old English|The warmest season of the year.|We swim at the lake every summer.
+sunset|n|Old English|The time in the evening when the sun goes down.|The sky turned pink at sunset.
+ticket|n|French|A printed slip that shows you have paid to enter or ride.|She bought a ticket for the afternoon show.
+tunnel|n|French|A passage dug under the ground or through a hill.|The train rushed through a long tunnel.
+turtle|n|Latin>French|A reptile with a hard shell that covers its body.|A turtle sunned itself on a log.
+wagon|n|Dutch|A vehicle with four wheels that is pulled to carry loads.|He pulled his little brother in a red wagon.
+walnut|n|Old English|A large nut with a hard, wrinkled shell.|She cracked a walnut with a hammer.
+wizard|n|Middle English|A person in stories who has magical powers.|The wizard waved his wand at the frog.
+ribbon|n|French|A long, narrow strip of cloth used for tying or decorating.|She tied a blue ribbon around the gift.
+shadow|n|Old English|A dark shape made when something blocks the light.|His shadow stretched across the sidewalk.
+shovel|n|Old English|A tool with a wide scoop and a long handle, used for digging.|He cleared the driveway with a shovel.
+bottle|n|Latin>French|A container with a narrow neck, used for holding liquids.|She filled the bottle at the fountain.
+bucket|n|French|A round, open container with a handle, used for carrying things.|He carried a bucket of sand to the castle.
+donkey|n|English|An animal like a small horse with long ears.|The donkey carried baskets up the hill.
+eagle|n|Latin>French|A large bird of prey with sharp eyesight and strong wings.|An eagle soared above the canyon.
+kettle|n|Latin>Old Norse|A metal pot with a spout, used for boiling water.|The kettle began to whistle on the stove.
+lizard|n|Latin>French|A small reptile with four legs and a long tail.|A lizard darted across the warm rock.
+magnet|n|Greek>Latin|A piece of metal that pulls iron toward it.|A magnet holds the drawing on the fridge.
+muffin|n|Low German|A small, round, sweet bread baked in a cup-shaped pan.|She ate a blueberry muffin for breakfast.
+ocean|n|Greek>Latin>French|The huge body of salt water that covers most of the earth.|Waves from the ocean crashed on the rocks.
+peanut|n|English|A small nut that grows underground in a thin shell.|He tossed a peanut to the squirrel.
+pickle|n|Dutch|A cucumber that has been kept in salty water or vinegar.|She added a pickle to her burger.
