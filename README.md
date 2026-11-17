@@ -1,6 +1,6 @@
 # Core Vocabulary
 
-A spelling game for two, hosted by Wormsworth, a worm in glasses who lives in an apple.
+A spelling game for two, with a mode for one, hosted by Wormsworth, a worm in glasses who lives in an apple.
 
 Wormsworth says a word. One player spells it out loud. The other types exactly what they hear and presses Enter. Right answers bring harder words, and a few misses ease things up.
 
@@ -13,6 +13,7 @@ Wormsworth says a word. One player spells it out loud. The other types exactly w
 - Optional time limit per word, off by default
 - No word repeats within a game until the whole bank has been used
 - Two spellers taking turns, each with their own level, or one speller with a typist
+- A one-player mode: listen, type the word yourself, or give up to see it at the cost of a miss
 - Sound effects, a session report, and a list of missed words to revisit
 
 ## Files
@@ -57,4 +58,5 @@ In the repository settings, under Pages, choose **Deploy from a branch**, branch
 ## Known limits
 
 - Pronunciation uses the browser's built-in voice, so clarity varies by device and rare words can be mispronounced. Pre-recorded audio is the planned fix.
+- One-player mode depends entirely on that voice. If a word is garbled, the definition and sentence clues are the only help short of giving up. Words that sound alike, such as *colonel* and *kernel*, need the definition to tell apart.
 - Definitions, sentences and origins were written by hand and have not been checked against a dictionary. Corrections are welcome.
